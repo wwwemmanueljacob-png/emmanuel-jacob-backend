@@ -1,7 +1,7 @@
 {
-  "name": "emmanuel-jacob-backend",
-  "version": "1.0.0",
-  "description": "Backend API for Emmanuel Jacob website",
+  "name": "jay-cob-financial-services-backend",
+  "version": "2.0.0",
+  "description": "Backend API for JAY C O B FINANCIAL SERVICES",
   "type": "module",
   "main": "server.js",
   "scripts": {
