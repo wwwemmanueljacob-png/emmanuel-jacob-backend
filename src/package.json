@@ -1,11 +1,12 @@
 {
-  "name": "jay-cob-financial-services-backend",
-  "version": "2.0.0",
-  "description": "Backend API for JAY C O B FINANCIAL SERVICES",
+  "name": "jaycob-financial-services-backend",
+  "version": "3.0.0",
+  "description": "JAY C O B FINANCIAL SERVICES Backend API",
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
