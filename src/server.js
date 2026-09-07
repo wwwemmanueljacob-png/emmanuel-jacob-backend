@@ -5,6 +5,7 @@ import crypto from "crypto";
 import testSupabaseRouter from "./testSupabase.js";
 import customersRouter from "./routes/customers.js";
 import customerAuthRouter from "./routes/customerAuth.js";
+import loansRouter from "./routes/loans.js";
 dotenv.config();
 
 const app = express();
@@ -27,6 +28,7 @@ app.use(express.json());
 app.use(testSupabaseRouter);
 app.use(customersRouter);
 app.use(customerAuthRouter);
+app.use(loansRouter);
 
 /* =========================================
    ADMIN CONFIGURATION
