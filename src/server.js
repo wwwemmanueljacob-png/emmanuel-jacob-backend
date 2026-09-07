@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import crypto from "crypto";
 import testSupabaseRouter from "./testSupabase.js";
+import customersRouter from "./routes/customers.js";
+
 dotenv.config();
 
 const app = express();
@@ -23,6 +25,7 @@ app.use(
 
 app.use(express.json());
 app.use(testSupabaseRouter);
+app.use(customersRouter);
 
 /* =========================================
    ADMIN CONFIGURATION
@@ -59,7 +62,6 @@ const customers = [
     created_at: new Date().toISOString()
   }
 ];
-
 
 const sessions = new Map();
 
@@ -896,10 +898,6 @@ app.post(
 
 /* =========================================
    GET CUSTOMER APPLICATIONS
-
-   IMPORTANT:
-   CUSTOMER GETS THE REAL STATUS
-   FROM THE SAME BACKEND DATABASE
 ========================================= */
 
 app.get(
@@ -1148,9 +1146,7 @@ app.get(
 
 
 /* =========================================
-   =========================================
    ADMIN API
-   =========================================
 ========================================= */
 
 
@@ -1373,9 +1369,6 @@ app.get(
 
 /* =========================================
    GET ALL LOAN APPLICATIONS
-
-   ADMIN AND CUSTOMER NOW USE
-   THE SAME APPLICATION DATA
 ========================================= */
 
 app.get(
@@ -1447,14 +1440,6 @@ app.get(
 
 /* =========================================
    UPDATE LOAN STATUS
-
-   THIS FIXES THE MAIN PROBLEM:
-
-   ADMIN APPROVES
-           ↓
-   BACKEND UPDATES
-           ↓
-   CUSTOMER SEES APPROVED
 ========================================= */
 
 app.put(
@@ -1551,11 +1536,6 @@ app.put(
       application.status;
 
 
-    /*
-      UPDATE THE REAL APPLICATION
-      IN THE BACKEND
-    */
-
     application.status =
       normalizedStatus;
 
@@ -1589,20 +1569,6 @@ app.put(
       normalizedStatus
 
     );
-
-
-    /*
-      IMPORTANT:
-
-      The customer endpoint:
-
-      GET /api/loans/my-applications
-
-      reads this SAME application.
-
-      Therefore the customer will
-      now see the updated status.
-    */
 
 
     res.json({
