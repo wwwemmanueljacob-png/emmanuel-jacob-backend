@@ -2,6 +2,9 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import crypto from "crypto";
+
+import { supabase } from "./lib/supabase.js";
+
 import testSupabaseRouter from "./testSupabase.js";
 import customersRouter from "./routes/customers.js";
 import customerAuthRouter from "./routes/customerAuth.js";
@@ -142,113 +145,376 @@ function addAuditLog(
 
 }
 
-
 /* =========================================
    CUSTOMER AUTHENTICATION MIDDLEWARE
+   SUPABASE SESSION VERSION
 ========================================= */
 
-function authenticate(
-  req,
-  res,
-  next
-) {
+async function authenticate(req, res, next) {
 
-  const authorization =
-    req.headers.authorization;
+  try {
 
+    const authorization =
+      req.headers.authorization;
 
-  if (!authorization) {
+    /*
+    -----------------------------------------
+    CHECK AUTHORIZATION HEADER
+    -----------------------------------------
+    */
 
-    return res.status(401).json({
+    if (!authorization) {
 
-      success: false,
+      return res.status(401).json({
 
-      message:
-        "Authentication token is required."
+        success: false,
 
-    });
+        message:
+          "Authentication token is required."
 
-  }
+      });
 
-
-  const parts =
-    authorization.split(" ");
-
-
-  if (
-    parts.length !== 2 ||
-    parts[0] !== "Bearer"
-  ) {
-
-    return res.status(401).json({
-
-      success: false,
-
-      message:
-        "Invalid authentication format."
-
-    });
-
-  }
+    }
 
 
-  const token =
-    parts[1];
+    /*
+    -----------------------------------------
+    CHECK BEARER FORMAT
+    -----------------------------------------
+    */
+
+    const parts =
+      authorization.trim().split(/\s+/);
+
+    if (
+      parts.length !== 2 ||
+      parts[0] !== "Bearer" ||
+      !parts[1]
+    ) {
+
+      return res.status(401).json({
+
+        success: false,
+
+        message:
+          "Invalid authentication format."
+
+      });
+
+    }
 
 
-  const customerId =
-    sessions.get(token);
+    const token =
+      parts[1];
 
 
-  if (!customerId) {
+    /*
+    -----------------------------------------
+    FIND ACTIVE SESSION
+    -----------------------------------------
+    */
 
-    return res.status(401).json({
+    const {
+      data: session,
+      error: sessionError
+    } = await supabase
 
-      success: false,
+      .from("customer_sessions")
 
-      message:
-        "Your login session is invalid or expired."
+      .select(`
+        id,
+        customer_id,
+        expires_at,
+        last_activity,
+        is_active
+      `)
 
-    });
+      .eq(
+        "session_token",
+        token
+      )
 
-  }
+      .eq(
+        "is_active",
+        true
+      )
+
+      .maybeSingle();
 
 
-  const customer =
-    customers.find(
+    if (sessionError) {
 
-      customer =>
-        customer.id === customerId
+      console.error(
+        "Session lookup error:",
+        sessionError
+      );
 
+      return res.status(500).json({
+
+        success: false,
+
+        message:
+          "Unable to verify customer session."
+
+      });
+
+    }
+
+
+    /*
+    -----------------------------------------
+    SESSION DOES NOT EXIST
+    -----------------------------------------
+    */
+
+    if (!session) {
+
+      return res.status(401).json({
+
+        success: false,
+
+        message:
+          "Your login session is invalid."
+
+      });
+
+    }
+
+
+    /*
+    -----------------------------------------
+    CHECK SESSION EXPIRATION
+    -----------------------------------------
+    */
+
+    const expiresAt =
+      new Date(
+        session.expires_at
+      );
+
+
+    if (
+      Number.isNaN(
+        expiresAt.getTime()
+      ) ||
+      expiresAt <= new Date()
+    ) {
+
+      await supabase
+
+        .from("customer_sessions")
+
+        .update({
+
+          is_active:
+            false,
+
+          logged_out_at:
+            new Date().toISOString(),
+
+          last_activity:
+            new Date().toISOString()
+
+        })
+
+        .eq(
+          "id",
+          session.id
+        );
+
+
+      return res.status(401).json({
+
+        success: false,
+
+        message:
+          "Your login session has expired."
+
+      });
+
+    }
+
+
+    /*
+    -----------------------------------------
+    GET AUTHENTICATED CUSTOMER
+    -----------------------------------------
+    */
+
+    const {
+      data: customer,
+      error: customerError
+    } = await supabase
+
+      .from("customers")
+
+      .select("*")
+
+      .eq(
+        "id",
+        session.customer_id
+      )
+
+      .maybeSingle();
+
+
+    if (customerError) {
+
+      console.error(
+        "Customer lookup error:",
+        customerError
+      );
+
+      return res.status(500).json({
+
+        success: false,
+
+        message:
+          "Unable to retrieve customer account."
+
+      });
+
+    }
+
+
+    if (!customer) {
+
+      return res.status(401).json({
+
+        success: false,
+
+        message:
+          "Customer account no longer exists."
+
+      });
+
+    }
+
+
+    /*
+    -----------------------------------------
+    CHECK ACCOUNT STATUS
+    -----------------------------------------
+    */
+
+    const accountStatus =
+      String(
+        customer.account_status ||
+        "active"
+      ).toLowerCase();
+
+
+    if (
+      accountStatus === "blocked"
+    ) {
+
+      /*
+      Immediately deactivate session
+      */
+
+      await supabase
+
+        .from("customer_sessions")
+
+        .update({
+
+          is_active:
+            false,
+
+          logged_out_at:
+            new Date().toISOString(),
+
+          last_activity:
+            new Date().toISOString()
+
+        })
+
+        .eq(
+          "id",
+          session.id
+        );
+
+
+      return res.status(403).json({
+
+        success: false,
+
+        message:
+          "Your customer account has been blocked."
+
+      });
+
+    }
+
+
+    /*
+    -----------------------------------------
+    UPDATE LAST ACTIVITY
+    -----------------------------------------
+    */
+
+    await supabase
+
+      .from("customer_sessions")
+
+      .update({
+
+        last_activity:
+          new Date().toISOString()
+
+      })
+
+      .eq(
+        "id",
+        session.id
+      );
+
+
+    /*
+    -----------------------------------------
+    ATTACH AUTHENTICATED CUSTOMER
+    -----------------------------------------
+    */
+
+    req.customer =
+      customer;
+
+    req.customerId =
+      customer.id;
+
+    req.session =
+      session;
+
+    req.token =
+      token;
+
+
+    /*
+    Continue to protected route
+    */
+
+    next();
+
+
+  } catch (error) {
+
+    console.error(
+      "Customer authentication error:",
+      error
     );
 
-
-  if (!customer) {
-
-    return res.status(401).json({
+    return res.status(500).json({
 
       success: false,
 
       message:
-        "Customer account not found."
+        "Customer authentication failed."
 
     });
 
   }
 
-
-  req.customer =
-    customer;
-
-
-  req.token =
-    token;
-
-
-  next();
-
-}
-
+       }
 
 /* =========================================
    ADMIN AUTHENTICATION MIDDLEWARE
