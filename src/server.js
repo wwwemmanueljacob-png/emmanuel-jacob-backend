@@ -9,6 +9,7 @@ import loansRouter from "./routes/loans.js";
 import transactionsRouter from "./routes/transactions.js";
 import statementsRouter from "./routes/statements.js";
 import kycRouter from "./routes/kyc.js";
+import supportRouter from "./routes/support.js";
 dotenv.config();
 
 const app = express();
@@ -35,6 +36,7 @@ app.use(loansRouter);
 app.use(transactionsRouter);
 app.use(statementsRouter);
 app.use(kycRouter);
+app.use(supportRouter);
 
 /* =========================================
    ADMIN CONFIGURATION
