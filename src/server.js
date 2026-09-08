@@ -7,6 +7,7 @@ import customersRouter from "./routes/customers.js";
 import customerAuthRouter from "./routes/customerAuth.js";
 import loansRouter from "./routes/loans.js";
 import transactionsRouter from "./routes/transactions.js";
+import statementsRouter from "./routes/statements.js";
 dotenv.config();
 
 const app = express();
@@ -31,6 +32,7 @@ app.use(customersRouter);
 app.use(customerAuthRouter);
 app.use(loansRouter);
 app.use(transactionsRouter);
+app.use(statementsRouter);
 
 /* =========================================
    ADMIN CONFIGURATION
