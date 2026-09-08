@@ -32,7 +32,7 @@ router.get(
           transaction_type,
           reference_number,
           description,
-          debt,
+          debit,
           credit,
           balance_after,
           transaction_date
