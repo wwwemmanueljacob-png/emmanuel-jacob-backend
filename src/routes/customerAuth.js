@@ -214,10 +214,14 @@ router.post(
 
 
         /*
-        Lock expired
+        -------------------------------------------------
+        LOCK EXPIRED
+        -------------------------------------------------
         */
 
-        await supabase
+        const {
+          error: unlockError
+        } = await supabase
           .from("customers")
           .update({
 
@@ -235,6 +239,16 @@ router.post(
           );
 
 
+        if (unlockError) {
+
+          console.error(
+            "Account unlock error:",
+            unlockError
+          );
+
+        }
+
+
         customer.failed_attempts = 0;
 
         customer.locked_until = null;
@@ -248,13 +262,14 @@ router.post(
       -------------------------------------------------
       */
 
-     const passwordValid =
-  await bcrypt.compare(
-    password,
-    customer.hash_password
-  );
+      const passwordValid =
+        await bcrypt.compare(
+          password,
+          customer.hash_password
+        );
 
-if (!passwordValid) {
+
+      if (!passwordValid) {
 
         const currentAttempts =
           Number(
@@ -281,7 +296,9 @@ if (!passwordValid) {
             ).toISOString();
 
 
-          await supabase
+          const {
+            error: lockError
+          } = await supabase
             .from("customers")
             .update({
 
@@ -299,6 +316,16 @@ if (!passwordValid) {
               "id",
               customer.id
             );
+
+
+          if (lockError) {
+
+            console.error(
+              "Account lock update error:",
+              lockError
+            );
+
+          }
 
 
           return res.status(423).json({
@@ -325,7 +352,9 @@ if (!passwordValid) {
         -------------------------------------------------
         */
 
-        await supabase
+        const {
+          error: attemptError
+        } = await supabase
           .from("customers")
           .update({
 
@@ -340,6 +369,16 @@ if (!passwordValid) {
             "id",
             customer.id
           );
+
+
+        if (attemptError) {
+
+          console.error(
+            "Failed attempt update error:",
+            attemptError
+          );
+
+        }
 
 
         return res.status(401).json({
@@ -375,8 +414,9 @@ if (!passwordValid) {
 
 
       /*
-      Session lifetime:
-      24 hours
+      -------------------------------------------------
+      SESSION LIFETIME: 24 HOURS
+      -------------------------------------------------
       */
 
       const expiresAt =
@@ -523,6 +563,12 @@ if (!passwordValid) {
 
       if (updateError) {
 
+        console.error(
+          "Customer reset error:",
+          updateError
+        );
+
+
         /*
         If customer update fails,
         deactivate the session we just created.
@@ -536,6 +582,9 @@ if (!passwordValid) {
               false,
 
             logged_out_at:
+              new Date().toISOString(),
+
+            last_activity:
               new Date().toISOString()
 
           })
@@ -622,7 +671,7 @@ router.get(
     try {
 
       const authorization =
-        req.headers.authorization;
+        req.headers.authorization || "";
 
 
       if (!authorization) {
@@ -662,7 +711,7 @@ router.get(
 
 
       const token =
-        parts[1];
+        parts[1].trim();
 
 
       /*
@@ -749,7 +798,13 @@ router.get(
         expiresAt <= new Date()
       ) {
 
-        await supabase
+        const expirationTime =
+          new Date().toISOString();
+
+
+        const {
+          error: expirationError
+        } = await supabase
           .from("customer_sessions")
           .update({
 
@@ -757,16 +812,26 @@ router.get(
               false,
 
             logged_out_at:
-              new Date().toISOString(),
+              expirationTime,
 
             last_activity:
-              new Date().toISOString()
+              expirationTime
 
           })
           .eq(
             "id",
             session.id
           );
+
+
+        if (expirationError) {
+
+          console.error(
+            "Session expiration update error:",
+            expirationError
+          );
+
+        }
 
 
         return res.status(401).json({
@@ -787,7 +852,9 @@ router.get(
       -------------------------------------------------
       */
 
-      await supabase
+      const {
+        error: activityError
+      } = await supabase
         .from("customer_sessions")
         .update({
 
@@ -799,6 +866,16 @@ router.get(
           "id",
           session.id
         );
+
+
+      if (activityError) {
+
+        console.error(
+          "Profile activity update error:",
+          activityError
+        );
+
+      }
 
 
       /*
@@ -908,8 +985,14 @@ router.post(
 
     try {
 
+      /*
+      -------------------------------------------------
+      GET AUTHORIZATION HEADER
+      -------------------------------------------------
+      */
+
       const authorization =
-        req.headers.authorization;
+        req.headers.authorization || "";
 
 
       if (!authorization) {
@@ -925,6 +1008,12 @@ router.post(
 
       }
 
+
+      /*
+      -------------------------------------------------
+      CHECK BEARER FORMAT
+      -------------------------------------------------
+      */
 
       const parts =
         authorization.trim().split(/\s+/);
@@ -949,7 +1038,7 @@ router.post(
 
 
       const token =
-        parts[1];
+        parts[1].trim();
 
 
       /*
@@ -960,12 +1049,14 @@ router.post(
 
       const {
         data: session,
-        error
+        error: sessionError
       } = await supabase
         .from("customer_sessions")
         .select(`
           id,
-          customer_id
+          customer_id,
+          session_token,
+          is_active
         `)
         .eq(
           "session_token",
@@ -978,11 +1069,11 @@ router.post(
         .maybeSingle();
 
 
-      if (error) {
+      if (sessionError) {
 
         console.error(
-          "Logout session lookup error:",
-          error
+          "CUSTOMER LOGOUT SESSION LOOKUP ERROR:",
+          sessionError
         );
 
         return res.status(500).json({
@@ -990,28 +1081,48 @@ router.post(
           success: false,
 
           message:
-            "Unable to find session.",
+            "Unable to verify logout session.",
 
           error:
-            error.message
+            sessionError.message
 
         });
 
       }
 
 
+      /*
+      -------------------------------------------------
+      SESSION NOT FOUND
+      -------------------------------------------------
+      */
+
       if (!session) {
+
+        console.error(
+          "CUSTOMER LOGOUT: Active session not found."
+        );
 
         return res.status(401).json({
 
           success: false,
 
           message:
-            "Session is invalid or already logged out."
+            "Active customer session was not found."
 
         });
 
       }
+
+
+      /*
+      -------------------------------------------------
+      LOGOUT TIME
+      -------------------------------------------------
+      */
+
+      const logoutTime =
+        new Date().toISOString();
 
 
       /*
@@ -1021,6 +1132,7 @@ router.post(
       */
 
       const {
+        data: updatedSession,
         error: logoutError
       } = await supabase
         .from("customer_sessions")
@@ -1030,22 +1142,36 @@ router.post(
             false,
 
           logged_out_at:
-            new Date().toISOString(),
+            logoutTime,
 
           last_activity:
-            new Date().toISOString()
+            logoutTime
 
         })
         .eq(
           "id",
           session.id
-        );
+        )
+        .select(`
+          id,
+          customer_id,
+          is_active,
+          logged_out_at,
+          last_activity
+        `)
+        .maybeSingle();
 
+
+      /*
+      -------------------------------------------------
+      CHECK UPDATE ERROR
+      -------------------------------------------------
+      */
 
       if (logoutError) {
 
         console.error(
-          "Logout update error:",
+          "CUSTOMER LOGOUT UPDATE ERROR:",
           logoutError
         );
 
@@ -1054,7 +1180,7 @@ router.post(
           success: false,
 
           message:
-            "Unable to logout customer.",
+            "Supabase could not deactivate the customer session.",
 
           error:
             logoutError.message
@@ -1064,12 +1190,103 @@ router.post(
       }
 
 
+      /*
+      -------------------------------------------------
+      VERIFY THAT A ROW WAS UPDATED
+      -------------------------------------------------
+      */
+
+      if (!updatedSession) {
+
+        console.error(
+          "CUSTOMER LOGOUT FAILED: Supabase updated zero rows.",
+          {
+            sessionId:
+              session.id,
+
+            customerId:
+              session.customer_id
+          }
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Logout could not deactivate the session. Check Supabase Row Level Security permissions."
+
+        });
+
+      }
+
+
+      /*
+      -------------------------------------------------
+      VERIFY is_active = false
+      -------------------------------------------------
+      */
+
+      if (
+        updatedSession.is_active !== false
+      ) {
+
+        console.error(
+          "CUSTOMER LOGOUT FAILED: Session is still active.",
+          updatedSession
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Logout verification failed. The session is still active."
+
+        });
+
+      }
+
+
+      /*
+      -------------------------------------------------
+      LOG SUCCESS
+      -------------------------------------------------
+      */
+
+      console.log(
+        "CUSTOMER LOGOUT SUCCESS:",
+        {
+          sessionId:
+            updatedSession.id,
+
+          customerId:
+            updatedSession.customer_id,
+
+          isActive:
+            updatedSession.is_active,
+
+          loggedOutAt:
+            updatedSession.logged_out_at
+        }
+      );
+
+
+      /*
+      -------------------------------------------------
+      RETURN SUCCESS
+      -------------------------------------------------
+      */
+
       return res.json({
 
         success: true,
 
         message:
-          "Customer logged out successfully."
+          "Customer logged out successfully.",
+
+        session:
+          updatedSession
 
       });
 
@@ -1077,7 +1294,7 @@ router.post(
     } catch (error) {
 
       console.error(
-        "Logout error:",
+        "CUSTOMER LOGOUT SERVER ERROR:",
         error
       );
 
@@ -1087,7 +1304,10 @@ router.post(
         success: false,
 
         message:
-          "Server error."
+          "Customer logout failed.",
+
+        error:
+          error.message
 
       });
 
@@ -1114,7 +1334,7 @@ async function authenticate(req, res, next) {
     */
 
     const authorization =
-      req.headers.authorization;
+      req.headers.authorization || "";
 
 
     if (!authorization) {
@@ -1160,7 +1380,7 @@ async function authenticate(req, res, next) {
 
 
     const token =
-      parts[1];
+      parts[1].trim();
 
 
     /*
@@ -1204,7 +1424,10 @@ async function authenticate(req, res, next) {
         success: false,
 
         message:
-          "Unable to verify customer session."
+          "Unable to verify customer session.",
+
+        error:
+          sessionError.message
 
       });
 
@@ -1250,7 +1473,13 @@ async function authenticate(req, res, next) {
       expiresAt <= new Date()
     ) {
 
-      await supabase
+      const expirationTime =
+        new Date().toISOString();
+
+
+      const {
+        error: expirationError
+      } = await supabase
         .from("customer_sessions")
         .update({
 
@@ -1258,16 +1487,26 @@ async function authenticate(req, res, next) {
             false,
 
           logged_out_at:
-            new Date().toISOString(),
+            expirationTime,
 
           last_activity:
-            new Date().toISOString()
+            expirationTime
 
         })
         .eq(
           "id",
           session.id
         );
+
+
+      if (expirationError) {
+
+        console.error(
+          "Authentication expiration update error:",
+          expirationError
+        );
+
+      }
 
 
       return res.status(401).json({
@@ -1313,7 +1552,10 @@ async function authenticate(req, res, next) {
         success: false,
 
         message:
-          "Unable to retrieve customer account."
+          "Unable to retrieve customer account.",
+
+        error:
+          customerError.message
 
       });
 
@@ -1357,7 +1599,13 @@ async function authenticate(req, res, next) {
       accountStatus === "blocked"
     ) {
 
-      await supabase
+      const blockTime =
+        new Date().toISOString();
+
+
+      const {
+        error: blockError
+      } = await supabase
         .from("customer_sessions")
         .update({
 
@@ -1365,16 +1613,26 @@ async function authenticate(req, res, next) {
             false,
 
           logged_out_at:
-            new Date().toISOString(),
+            blockTime,
 
           last_activity:
-            new Date().toISOString()
+            blockTime
 
         })
         .eq(
           "id",
           session.id
         );
+
+
+      if (blockError) {
+
+        console.error(
+          "Blocked session update error:",
+          blockError
+        );
+
+      }
 
 
       return res.status(403).json({
@@ -1395,7 +1653,9 @@ async function authenticate(req, res, next) {
     -------------------------------------------------
     */
 
-    await supabase
+    const {
+      error: activityError
+    } = await supabase
       .from("customer_sessions")
       .update({
 
@@ -1407,6 +1667,16 @@ async function authenticate(req, res, next) {
         "id",
         session.id
       );
+
+
+    if (activityError) {
+
+      console.error(
+        "Authentication activity update error:",
+        activityError
+      );
+
+    }
 
 
     /*
@@ -1449,7 +1719,10 @@ async function authenticate(req, res, next) {
       success: false,
 
       message:
-        "Customer authentication failed."
+        "Customer authentication failed.",
+
+      error:
+        error.message
 
     });
 
