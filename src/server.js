@@ -15,11 +15,13 @@ import transactionsRouter from "./routes/transactions.js";
 import statementsRouter from "./routes/statements.js";
 import kycRouter from "./routes/kyc.js";
 import supportRouter from "./routes/support.js";
+
 dotenv.config();
 
 const app = express();
 
 const PORT = process.env.PORT || 3000;
+
 
 /* =========================================
    MIDDLEWARE
@@ -28,12 +30,22 @@ const PORT = process.env.PORT || 3000;
 app.use(
   cors({
     origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    methods: [
+      "GET",
+      "POST",
+      "PUT",
+      "DELETE",
+      "OPTIONS"
+    ],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization"
+    ]
   })
 );
 
 app.use(express.json());
+
 app.use(testSupabaseRouter);
 app.use(customersRouter);
 app.use(customerAuthRouter);
@@ -42,6 +54,7 @@ app.use(transactionsRouter);
 app.use(statementsRouter);
 app.use(kycRouter);
 app.use(supportRouter);
+
 
 /* =========================================
    ADMIN CONFIGURATION
@@ -64,7 +77,7 @@ const ADMIN_PASSWORD =
    IMPORTANT:
    Railway restart/redeploy may reset data.
 
-   Later we will connect a permanent database.
+   Existing system preserved.
 ========================================= */
 
 const customers = [
@@ -128,7 +141,8 @@ function addAuditLog(
 
   const log = {
 
-    id: createId("AUDIT"),
+    id:
+      createId("AUDIT"),
 
     date:
       new Date().toISOString(),
@@ -148,7 +162,6 @@ function addAuditLog(
 }
 
 
-
 /* =========================================
    ADMIN AUTHENTICATION MIDDLEWARE
 ========================================= */
@@ -161,7 +174,6 @@ function authenticateAdmin(
 
   const authorization =
     req.headers.authorization;
-
 
   if (!authorization) {
 
@@ -176,14 +188,13 @@ function authenticateAdmin(
 
   }
 
-
   const parts =
-    authorization.split(" ");
-
+    authorization.trim().split(/\s+/);
 
   if (
     parts.length !== 2 ||
-    parts[0] !== "Bearer"
+    parts[0] !== "Bearer" ||
+    !parts[1]
   ) {
 
     return res.status(401).json({
@@ -197,14 +208,11 @@ function authenticateAdmin(
 
   }
 
-
   const token =
     parts[1];
 
-
   const admin =
     adminSessions.get(token);
-
 
   if (!admin) {
 
@@ -219,14 +227,11 @@ function authenticateAdmin(
 
   }
 
-
   req.admin =
     admin;
 
-
   req.adminToken =
     token;
-
 
   next();
 
@@ -290,24 +295,15 @@ app.post(
   (req, res) => {
 
     const {
-
       loan_type,
-
       amount,
-
       duration_months
-
     } = req.body;
 
-
     if (
-
       !loan_type ||
-
       !amount ||
-
       !duration_months
-
     ) {
 
       return res.status(400).json({
@@ -321,14 +317,11 @@ app.post(
 
     }
 
-
     const loanAmount =
       Number(amount);
 
-
     const duration =
       Number(duration_months);
-
 
     if (
       isNaN(loanAmount) ||
@@ -346,7 +339,6 @@ app.post(
 
     }
 
-
     if (
       isNaN(duration) ||
       duration <= 0
@@ -362,7 +354,6 @@ app.post(
       });
 
     }
-
 
     const application = {
 
@@ -406,21 +397,15 @@ app.post(
 
     };
 
-
     applications.push(
       application
     );
 
-
     addAuditLog(
-
       req.customer.email,
-
       "Created loan application " +
       application.id
-
     );
-
 
     res.status(201).json({
 
@@ -457,7 +442,6 @@ app.get(
           req.customer.id
 
       );
-
 
     res.json({
 
@@ -496,7 +480,6 @@ app.get(
 
       );
 
-
     if (!application) {
 
       return res.status(404).json({
@@ -509,7 +492,6 @@ app.get(
       });
 
     }
-
 
     res.json({
 
@@ -544,7 +526,6 @@ app.get(
 
       );
 
-
     res.json({
 
       success: true,
@@ -570,13 +551,9 @@ app.post(
   (req, res) => {
 
     const {
-
       subject,
-
       message
-
     } = req.body;
-
 
     if (!message) {
 
@@ -590,7 +567,6 @@ app.post(
       });
 
     }
-
 
     const supportMessage = {
 
@@ -607,9 +583,7 @@ app.post(
         req.customer.email,
 
       subject:
-
         subject ||
-
         "Customer Support",
 
       message,
@@ -622,20 +596,14 @@ app.post(
 
     };
 
-
     supportMessages.push(
       supportMessage
     );
 
-
     addAuditLog(
-
       req.customer.email,
-
       "Sent support message"
-
     );
-
 
     res.status(201).json({
 
@@ -673,7 +641,6 @@ app.get(
 
       );
 
-
     res.json({
 
       success: true,
@@ -701,13 +668,9 @@ app.post(
   (req, res) => {
 
     const {
-
       email,
-
       password
-
     } = req.body;
-
 
     if (
       !email ||
@@ -725,12 +688,9 @@ app.post(
 
     }
 
-
     if (
-
       email.toLowerCase() !==
       ADMIN_EMAIL.toLowerCase()
-
     ) {
 
       return res.status(401).json({
@@ -743,7 +703,6 @@ app.post(
       });
 
     }
-
 
     if (
       password !==
@@ -761,10 +720,8 @@ app.post(
 
     }
 
-
     const token =
       createToken();
-
 
     const admin = {
 
@@ -782,24 +739,15 @@ app.post(
 
     };
 
-
     adminSessions.set(
-
       token,
-
       admin
-
     );
-
 
     addAuditLog(
-
       ADMIN_EMAIL,
-
       "Administrator logged in"
-
     );
-
 
     res.json({
 
@@ -833,15 +781,10 @@ app.post(
       req.adminToken
     );
 
-
     addAuditLog(
-
       req.admin.email,
-
       "Administrator logged out"
-
     );
-
 
     res.json({
 
@@ -893,7 +836,6 @@ app.get(
         })
 
       );
-
 
     res.json({
 
@@ -952,7 +894,6 @@ app.get(
 
       );
 
-
     if (!application) {
 
       return res.status(404).json({
@@ -965,7 +906,6 @@ app.get(
       });
 
     }
-
 
     res.json({
 
@@ -991,24 +931,15 @@ app.put(
   (req, res) => {
 
     const {
-
       status
-
     } = req.body;
 
-
     const allowedStatuses = [
-
       "PENDING",
-
       "UNDER REVIEW",
-
       "APPROVED",
-
       "REJECTED"
-
     ];
-
 
     if (!status) {
 
@@ -1023,17 +954,13 @@ app.put(
 
     }
 
-
     const normalizedStatus =
       status.toUpperCase();
 
-
     if (
-
       !allowedStatuses.includes(
         normalizedStatus
       )
-
     ) {
 
       return res.status(400).json({
@@ -1047,7 +974,6 @@ app.put(
 
     }
 
-
     const application =
       applications.find(
 
@@ -1057,7 +983,6 @@ app.put(
           req.params.id
 
       );
-
 
     if (!application) {
 
@@ -1072,45 +997,30 @@ app.put(
 
     }
 
-
     const oldStatus =
       application.status;
-
 
     application.status =
       normalizedStatus;
 
-
     application.updated_at =
       new Date().toISOString();
-
 
     application.reviewed_at =
       new Date().toISOString();
 
-
     application.reviewed_by =
       req.admin.email;
 
-
     addAuditLog(
-
       req.admin.email,
-
       "Loan application " +
-
       application.id +
-
       " changed from " +
-
       oldStatus +
-
       " to " +
-
       normalizedStatus
-
     );
-
 
     res.json({
 
@@ -1147,7 +1057,6 @@ app.get(
 
       ).length;
 
-
     const underReview =
       applications.filter(
 
@@ -1156,7 +1065,6 @@ app.get(
           "UNDER REVIEW"
 
       ).length;
-
 
     const approved =
       applications.filter(
@@ -1167,7 +1075,6 @@ app.get(
 
       ).length;
 
-
     const rejected =
       applications.filter(
 
@@ -1177,19 +1084,19 @@ app.get(
 
       ).length;
 
-
     const totalRequested =
       applications.reduce(
 
         (total, application) =>
 
           total +
-          Number(application.amount || 0),
+          Number(
+            application.amount || 0
+          ),
 
         0
 
       );
-
 
     const personalLoans =
       applications.filter(
@@ -1202,7 +1109,6 @@ app.get(
 
       ).length;
 
-
     const businessLoans =
       applications.filter(
 
@@ -1213,7 +1119,6 @@ app.get(
             .includes("business")
 
       ).length;
-
 
     res.json({
 
@@ -1265,17 +1170,11 @@ app.post(
   (req, res) => {
 
     const {
-
       customer,
-
       date,
-
       priority,
-
       notes
-
     } = req.body;
-
 
     if (
       !customer ||
@@ -1293,7 +1192,6 @@ app.post(
       });
 
     }
-
 
     const followup = {
 
@@ -1317,20 +1215,14 @@ app.post(
 
     };
 
-
     followups.unshift(
       followup
     );
 
-
     addAuditLog(
-
       req.admin.email,
-
       "Created follow-up"
-
     );
-
 
     res.status(201).json({
 
@@ -1417,6 +1309,577 @@ app.get(
 );
 
 
+/* =====================================================
+   SECURITY
+   REAL SUPABASE DATA
+===================================================== */
+
+
+/* =========================================
+   SECURITY OVERVIEW
+========================================= */
+
+app.get(
+  "/api/admin/security/overview",
+
+  authenticateAdmin,
+
+  async (req, res) => {
+
+    try {
+
+      const [
+        loginAttemptsResult,
+        securityEventsResult,
+        activeSessionsResult
+      ] = await Promise.all([
+
+        supabase
+          .from("login_attempts")
+          .select("*", {
+            count: "exact",
+            head: true
+          }),
+
+        supabase
+          .from("security_events")
+          .select("*", {
+            count: "exact",
+            head: true
+          }),
+
+        supabase
+          .from("customer_sessions")
+          .select("*", {
+            count: "exact",
+            head: true
+          })
+          .eq(
+            "is_active",
+            true
+          )
+
+      ]);
+
+      if (
+        loginAttemptsResult.error
+      ) {
+
+        console.error(
+          "SECURITY LOGIN ATTEMPTS COUNT ERROR:",
+          loginAttemptsResult.error
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to load login attempt statistics.",
+
+          error:
+            loginAttemptsResult.error.message
+
+        });
+
+      }
+
+      if (
+        securityEventsResult.error
+      ) {
+
+        console.error(
+          "SECURITY EVENTS COUNT ERROR:",
+          securityEventsResult.error
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to load security event statistics.",
+
+          error:
+            securityEventsResult.error.message
+
+        });
+
+      }
+
+      if (
+        activeSessionsResult.error
+      ) {
+
+        console.error(
+          "ACTIVE CUSTOMER SESSIONS COUNT ERROR:",
+          activeSessionsResult.error
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to load active customer session statistics.",
+
+          error:
+            activeSessionsResult.error.message
+
+        });
+
+      }
+
+      res.json({
+
+        success: true,
+
+        statistics: {
+
+          failedLogins:
+            loginAttemptsResult.count || 0,
+
+          securityEvents:
+            securityEventsResult.count || 0,
+
+          activeSessions:
+            activeSessionsResult.count || 0
+
+        },
+
+        securityStatus: {
+
+          loginProtection:
+            "ACTIVE",
+
+          sessionMonitoring:
+            "ACTIVE",
+
+          securityMonitoring:
+            "ACTIVE"
+
+        }
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "SECURITY OVERVIEW ERROR:",
+        error
+      );
+
+      res.status(500).json({
+
+        success: false,
+
+        message:
+          "Security overview could not be loaded.",
+
+        error:
+          error.message
+
+      });
+
+    }
+
+  }
+);
+
+
+/* =========================================
+   LOGIN ACTIVITY
+========================================= */
+
+app.get(
+  "/api/admin/security/login-attempts",
+
+  authenticateAdmin,
+
+  async (req, res) => {
+
+    try {
+
+      const {
+        data,
+        error
+      } = await supabase
+        .from("login_attempts")
+        .select("*")
+        .limit(100);
+
+      if (error) {
+
+        console.error(
+          "LOGIN ACTIVITY ERROR:",
+          error
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to load login activity.",
+
+          error:
+            error.message
+
+        });
+
+      }
+
+      res.json({
+
+        success: true,
+
+        loginAttempts:
+          data || []
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "LOGIN ACTIVITY SERVER ERROR:",
+        error
+      );
+
+      res.status(500).json({
+
+        success: false,
+
+        message:
+          "Login activity could not be loaded.",
+
+        error:
+          error.message
+
+      });
+
+    }
+
+  }
+);
+
+
+/* =========================================
+   SECURITY EVENTS
+========================================= */
+
+app.get(
+  "/api/admin/security/events",
+
+  authenticateAdmin,
+
+  async (req, res) => {
+
+    try {
+
+      const {
+        data,
+        error
+      } = await supabase
+        .from("security_events")
+        .select("*")
+        .limit(100);
+
+      if (error) {
+
+        console.error(
+          "SECURITY EVENTS ERROR:",
+          error
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to load security events.",
+
+          error:
+            error.message
+
+        });
+
+      }
+
+      res.json({
+
+        success: true,
+
+        securityEvents:
+          data || []
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "SECURITY EVENTS SERVER ERROR:",
+        error
+      );
+
+      res.status(500).json({
+
+        success: false,
+
+        message:
+          "Security events could not be loaded.",
+
+        error:
+          error.message
+
+      });
+
+    }
+
+  }
+);
+
+
+/* =========================================
+   ACTIVE CUSTOMER SESSIONS
+========================================= */
+
+app.get(
+  "/api/admin/security/active-sessions",
+
+  authenticateAdmin,
+
+  async (req, res) => {
+
+    try {
+
+      const {
+        data,
+        error
+      } = await supabase
+        .from("customer_sessions")
+        .select("*")
+        .eq(
+          "is_active",
+          true
+        )
+        .limit(100);
+
+      if (error) {
+
+        console.error(
+          "ACTIVE CUSTOMER SESSIONS ERROR:",
+          error
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to load active customer sessions.",
+
+          error:
+            error.message
+
+        });
+
+      }
+
+      res.json({
+
+        success: true,
+
+        activeSessions:
+          data || []
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "ACTIVE CUSTOMER SESSIONS SERVER ERROR:",
+        error
+      );
+
+      res.status(500).json({
+
+        success: false,
+
+        message:
+          "Active customer sessions could not be loaded.",
+
+        error:
+          error.message
+
+      });
+
+    }
+
+  }
+);
+
+
+/* =========================================
+   SECURITY - ALL DATA
+   Useful for the Admin Dashboard
+========================================= */
+
+app.get(
+  "/api/admin/security",
+
+  authenticateAdmin,
+
+  async (req, res) => {
+
+    try {
+
+      const [
+        loginAttempts,
+        securityEvents,
+        activeSessions
+      ] = await Promise.all([
+
+        supabase
+          .from("login_attempts")
+          .select("*")
+          .limit(100),
+
+        supabase
+          .from("security_events")
+          .select("*")
+          .limit(100),
+
+        supabase
+          .from("customer_sessions")
+          .select("*")
+          .eq(
+            "is_active",
+            true
+          )
+          .limit(100)
+
+      ]);
+
+      if (
+        loginAttempts.error
+      ) {
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to load login attempts.",
+
+          error:
+            loginAttempts.error.message
+
+        });
+
+      }
+
+      if (
+        securityEvents.error
+      ) {
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to load security events.",
+
+          error:
+            securityEvents.error.message
+
+        });
+
+      }
+
+      if (
+        activeSessions.error
+      ) {
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to load active sessions.",
+
+          error:
+            activeSessions.error.message
+
+        });
+
+      }
+
+      res.json({
+
+        success: true,
+
+        statistics: {
+
+          failedLogins:
+            loginAttempts.data?.length || 0,
+
+          securityEvents:
+            securityEvents.data?.length || 0,
+
+          activeSessions:
+            activeSessions.data?.length || 0
+
+        },
+
+        loginAttempts:
+          loginAttempts.data || [],
+
+        securityEvents:
+          securityEvents.data || [],
+
+        activeSessions:
+          activeSessions.data || [],
+
+        securityStatus: {
+
+          loginProtection:
+            "ACTIVE",
+
+          sessionMonitoring:
+            "ACTIVE",
+
+          securityMonitoring:
+            "ACTIVE"
+
+        }
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "SECURITY API ERROR:",
+        error
+      );
+
+      res.status(500).json({
+
+        success: false,
+
+        message:
+          "Security system could not be loaded.",
+
+        error:
+          error.message
+
+      });
+
+    }
+
+  }
+);
+
+
 /* =========================================
    404 HANDLER
 ========================================= */
@@ -1449,9 +1912,7 @@ app.listen(
   () => {
 
     console.log(
-
       `JAY C O B Backend running on port ${PORT}`
-
     );
 
   }
