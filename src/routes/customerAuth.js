@@ -992,14 +992,7 @@ JAY C O B FINANCIAL SERVICES
 =====================================================
 */
 
-/*
------------------------------------------------------
-HASH PASSWORD
------------------------------------------------------
-*/
 
-function hashPassword(password) {
-  return crypto
     .createHash("sha256")
     .update(password)
     .digest("hex");
