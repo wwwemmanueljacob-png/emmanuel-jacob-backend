@@ -1,5 +1,6 @@
 import express from "express";
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import { supabase } from "../lib/supabase.js";
 
 const router = express.Router();
@@ -10,20 +11,6 @@ CUSTOMER AUTHENTICATION
 JAY C O B FINANCIAL SERVICES
 =====================================================
 */
-
-/*
------------------------------------------------------
-HASH PASSWORD
------------------------------------------------------
-*/
-
-function hashPassword(password) {
-  return crypto
-    .createHash("sha256")
-    .update(password)
-    .digest("hex");
-}
-
 
 /*
 -----------------------------------------------------
@@ -261,14 +248,13 @@ router.post(
       -------------------------------------------------
       */
 
-      const passwordHash =
-        hashPassword(password);
+     const passwordValid =
+  await bcrypt.compare(
+    password,
+    customer.hash_password
+  );
 
-
-      if (
-        passwordHash !==
-        customer.hash_password
-      ) {
+if (!passwordValid) {
 
         const currentAttempts =
           Number(
