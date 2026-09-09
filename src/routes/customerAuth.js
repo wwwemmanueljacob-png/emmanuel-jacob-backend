@@ -985,13 +985,6 @@ router.post(
   }
 );
 
-
-import express from "express";
-import crypto from "crypto";
-import { supabase } from "../lib/supabase.js";
-
-const router = express.Router();
-
 /*
 =====================================================
 CUSTOMER AUTHENTICATION
