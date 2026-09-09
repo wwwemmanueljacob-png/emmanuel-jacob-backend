@@ -985,18 +985,6 @@ router.post(
   }
 );
 
-/*
-=====================================================
-CUSTOMER AUTHENTICATION
-JAY C O B FINANCIAL SERVICES
-=====================================================
-*/
-
-
-    .createHash("sha256")
-    .update(password)
-    .digest("hex");
-}
 
 
 /*
