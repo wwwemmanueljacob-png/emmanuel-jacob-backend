@@ -81,6 +81,8 @@ const customers = [
 
 const sessions = new Map();
 
+const adminSessions = new Map();
+
 const applications = [];
 
 const payments = [];
