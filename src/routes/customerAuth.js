@@ -1319,6 +1319,201 @@ router.post(
 
 /*
 =====================================================
+CUSTOMER SESSION CHECK
+GET /api/auth/session
+=====================================================
+*/
+
+router.get(
+  "/api/auth/session",
+  async (req, res) => {
+
+    try {
+
+      const authorization =
+        req.headers.authorization || "";
+
+      if (!authorization) {
+
+        return res.status(401).json({
+          success: false,
+          authenticated: false,
+          message:
+            "Authentication token is required."
+        });
+
+      }
+
+      const parts =
+        authorization.trim().split(/\s+/);
+
+      if (
+        parts.length !== 2 ||
+        parts[0] !== "Bearer" ||
+        !parts[1]
+      ) {
+
+        return res.status(401).json({
+          success: false,
+          authenticated: false,
+          message:
+            "Invalid authentication format."
+        });
+
+      }
+
+      const token =
+        parts[1].trim();
+
+      /*
+      -------------------------------------------------
+      FIND ACTIVE SESSION
+      -------------------------------------------------
+      */
+
+      const {
+        data: session,
+        error
+      } = await supabase
+        .from("customer_sessions")
+        .select(`
+          id,
+          customer_id,
+          expires_at,
+          is_active,
+          logged_out_at
+        `)
+        .eq(
+          "session_token",
+          token
+        )
+        .eq(
+          "is_active",
+          true
+        )
+        .maybeSingle();
+
+      if (error) {
+
+        console.error(
+          "CUSTOMER SESSION CHECK ERROR:",
+          error
+        );
+
+        return res.status(500).json({
+          success: false,
+          authenticated: false,
+          message:
+            "Unable to verify customer session.",
+          error:
+            error.message
+        });
+
+      }
+
+      /*
+      -------------------------------------------------
+      SESSION DOES NOT EXIST
+      -------------------------------------------------
+      */
+
+      if (!session) {
+
+        return res.status(401).json({
+          success: false,
+          authenticated: false,
+          message:
+            "Customer session is not active."
+        });
+
+      }
+
+      /*
+      -------------------------------------------------
+      CHECK SESSION EXPIRATION
+      -------------------------------------------------
+      */
+
+      if (
+        session.expires_at &&
+        new Date(session.expires_at) <= new Date()
+      ) {
+
+        await supabase
+          .from("customer_sessions")
+          .update({
+            is_active: false,
+            logged_out_at:
+              new Date().toISOString()
+          })
+          .eq(
+            "id",
+            session.id
+          );
+
+        return res.status(401).json({
+          success: false,
+          authenticated: false,
+          message:
+            "Customer session has expired."
+        });
+
+      }
+
+      /*
+      -------------------------------------------------
+      SESSION IS VALID
+      -------------------------------------------------
+      */
+
+      return res.json({
+
+        success: true,
+
+        authenticated: true,
+
+        session: {
+          id:
+            session.id,
+
+          customer_id:
+            session.customer_id,
+
+          expires_at:
+            session.expires_at,
+
+          is_active:
+            session.is_active
+        }
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "CUSTOMER SESSION CHECK SERVER ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+
+        success: false,
+
+        authenticated: false,
+
+        message:
+          "Customer session verification failed."
+
+      });
+
+    }
+
+  }
+);
+
+
+/*
+=====================================================
 CUSTOMER AUTHENTICATION MIDDLEWARE
 =====================================================
 */
