@@ -2312,6 +2312,213 @@ app.get(
   }
 );
 
+/* =========================================
+   ADMIN ACCOUNT RECOVERY
+   REQUEST RECOVERY OTP
+========================================= */
+
+const recoveryRequests = new Map();
+
+
+app.post(
+  "/api/admin/recovery/request",
+
+  async (req, res) => {
+
+    try {
+
+      const {
+        email
+      } = req.body;
+
+
+      if (!email) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Administrator email is required."
+
+        });
+
+      }
+
+
+      const normalizedEmail =
+        email.trim().toLowerCase();
+
+
+      /* =====================================
+         FIND ADMIN IN SUPABASE
+      ===================================== */
+
+      const {
+        data: adminRecord,
+        error: adminError
+      } = await supabase
+        .from("admins")
+        .select(`
+          id,
+          full_name,
+          email,
+          is_active,
+          is_verified,
+          auth_user_id
+        `)
+        .ilike(
+          "email",
+          normalizedEmail
+        )
+        .maybeSingle();
+
+
+      if (adminError) {
+
+        console.error(
+          "RECOVERY ADMIN LOOKUP ERROR:",
+          adminError
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to process account recovery."
+
+        });
+
+      }
+
+
+      /* =====================================
+         DO NOT REVEAL WHETHER EMAIL EXISTS
+      ===================================== */
+
+      if (
+        !adminRecord ||
+        adminRecord.is_active === false
+      ) {
+
+        return res.json({
+
+          success: true,
+
+          message:
+            "If the administrator account exists, a recovery OTP will be sent."
+
+        });
+
+      }
+
+
+      /* =====================================
+         GENERATE 6-DIGIT OTP
+      ===================================== */
+
+      const otp =
+        crypto
+          .randomInt(
+            100000,
+            1000000
+          )
+          .toString();
+
+
+      const expiresAt =
+        Date.now() +
+        (10 * 60 * 1000);
+
+
+      /* =====================================
+         STORE OTP TEMPORARILY
+      ===================================== */
+
+      recoveryRequests.set(
+        normalizedEmail,
+        {
+
+          otp,
+
+          adminId:
+            adminRecord.id,
+
+          expiresAt,
+
+          attempts:
+            0
+
+        }
+      );
+
+
+      /* =====================================
+         SECURITY LOG
+      ===================================== */
+
+      addAuditLog(
+        normalizedEmail,
+        "Administrator account recovery requested"
+      );
+
+
+      /* =====================================
+         TEMPORARY SERVER LOG
+         
+         REMOVE THIS WHEN REAL EMAIL
+         DELIVERY IS CONNECTED.
+      ===================================== */
+
+      console.log(
+        "ADMIN RECOVERY OTP:",
+        {
+          email:
+            normalizedEmail,
+
+          otp,
+
+          expiresAt:
+            new Date(expiresAt).toISOString()
+
+        }
+      );
+
+
+      /* =====================================
+         RESPONSE
+      ===================================== */
+
+      return res.json({
+
+        success: true,
+
+        message:
+          "Recovery OTP generated successfully."
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "ADMIN RECOVERY REQUEST ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+
+        success: false,
+
+        message:
+          "Account recovery could not be completed."
+
+      });
+
+    }
+
+  }
+);
 
 /* =========================================
    404 HANDLER
