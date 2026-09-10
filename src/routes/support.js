@@ -333,5 +333,300 @@ router.get(
   }
 );
 
+/* =========================================================
+   ADMIN - UPDATE SUPPORT TICKET
+   PUT /api/admin/support-tickets/:id
+========================================================= */
+
+router.put(
+  "/api/admin/support-tickets/:id",
+  async (req, res) => {
+
+    try {
+
+      const ticketId =
+        Number(req.params.id);
+
+      if (!Number.isInteger(ticketId)) {
+
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid support ticket ID."
+        });
+
+      }
+
+
+      const {
+        status,
+        priority,
+        admin_response,
+        assigned_to
+      } = req.body;
+
+
+      /* -----------------------------------------------------
+         VALIDATE STATUS
+      ----------------------------------------------------- */
+
+      const allowedStatuses = [
+        "open",
+        "in progress",
+        "resolved",
+        "closed"
+      ];
+
+
+      const normalizedStatus =
+        String(
+          status || "open"
+        )
+        .trim()
+        .toLowerCase();
+
+
+      if (
+        !allowedStatuses.includes(
+          normalizedStatus
+        )
+      ) {
+
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid support ticket status."
+        });
+
+      }
+
+
+      /* -----------------------------------------------------
+         VALIDATE PRIORITY
+      ----------------------------------------------------- */
+
+      const allowedPriorities = [
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ];
+
+
+      const normalizedPriority =
+        String(
+          priority || "medium"
+        )
+        .trim()
+        .toLowerCase();
+
+
+      if (
+        !allowedPriorities.includes(
+          normalizedPriority
+        )
+      ) {
+
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid support ticket priority."
+        });
+
+      }
+
+
+      /* -----------------------------------------------------
+         VALIDATE ASSIGNED ADMIN
+      ----------------------------------------------------- */
+
+      let assignedAdmin = null;
+
+
+      if (
+        assigned_to !== undefined &&
+        assigned_to !== null &&
+        String(assigned_to).trim() !== ""
+      ) {
+
+        assignedAdmin =
+          Number(assigned_to);
+
+
+        if (
+          !Number.isInteger(
+            assignedAdmin
+          )
+        ) {
+
+          return res.status(400).json({
+            success: false,
+            message:
+              "Assigned admin ID must be a valid number."
+          });
+
+        }
+
+      }
+
+
+      /* -----------------------------------------------------
+         CHECK TICKET EXISTS
+      ----------------------------------------------------- */
+
+      const {
+        data: existingTicket,
+        error: ticketLookupError
+      } = await supabase
+        .from("support_tickets")
+        .select(`
+          id,
+          status,
+          priority,
+          admin_response,
+          assigned_to,
+          closed_at
+        `)
+        .eq("id", ticketId)
+        .maybeSingle();
+
+
+      if (ticketLookupError) {
+
+        console.error(
+          "SUPPORT TICKET LOOKUP ERROR:",
+          ticketLookupError
+        );
+
+        return res.status(500).json({
+          success: false,
+          message:
+            "Unable to find support ticket."
+        });
+
+      }
+
+
+      if (!existingTicket) {
+
+        return res.status(404).json({
+          success: false,
+          message:
+            "Support ticket not found."
+        });
+
+      }
+
+
+      /* -----------------------------------------------------
+         PREPARE UPDATE
+      ----------------------------------------------------- */
+
+      const updateData = {
+
+        status:
+          normalizedStatus,
+
+        priority:
+          normalizedPriority,
+
+        admin_response:
+          admin_response !== undefined &&
+          admin_response !== null
+            ? String(
+                admin_response
+              ).trim()
+            : existingTicket.admin_response || "",
+
+        assigned_to:
+          assignedAdmin,
+
+        updated_at:
+          new Date().toISOString()
+
+      };
+
+
+      /* -----------------------------------------------------
+         CLOSED DATE
+      ----------------------------------------------------- */
+
+      if (
+        normalizedStatus === "closed"
+      ) {
+
+        updateData.closed_at =
+          existingTicket.closed_at ||
+          new Date().toISOString();
+
+      } else {
+
+        updateData.closed_at =
+          null;
+
+      }
+
+
+      /* -----------------------------------------------------
+         UPDATE SUPABASE
+      ----------------------------------------------------- */
+
+      const {
+        data,
+        error
+      } = await supabase
+        .from("support_tickets")
+        .update(updateData)
+        .eq("id", ticketId)
+        .select()
+        .single();
+
+
+      if (error) {
+
+        console.error(
+          "SUPPORT TICKET UPDATE ERROR:",
+          error
+        );
+
+        return res.status(500).json({
+          success: false,
+          message:
+            "Unable to update support ticket."
+        });
+
+      }
+
+
+      return res.json({
+
+        success: true,
+
+        message:
+          "Support ticket updated successfully.",
+
+        ticket:
+          data
+
+      });
+
+
+    } catch (error) {
+
+      console.error(
+        "SUPPORT TICKET UPDATE SERVER ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Server error while updating support ticket."
+      });
+
+    }
+
+  }
+);
 
 export default router;
