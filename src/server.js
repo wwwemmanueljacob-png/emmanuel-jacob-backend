@@ -1058,7 +1058,8 @@ app.get(
 
 
 /* =========================================
-   UPDATE LOAN STATUS
+   UPDATE LOAN APPLICATION STATUS
+   REAL SUPABASE DATA
 ========================================= */
 
 app.put(
@@ -1066,110 +1067,252 @@ app.put(
 
   authenticateAdmin,
 
-  (req, res) => {
+  async (req, res) => {
 
-    const {
-      status
-    } = req.body;
+    try {
 
-    const allowedStatuses = [
-      "PENDING",
-      "UNDER REVIEW",
-      "APPROVED",
-      "REJECTED"
-    ];
+      const {
+        status,
+        rejection_reason,
+        notes
+      } = req.body;
 
-    if (!status) {
+      const allowedStatuses = [
+        "PENDING",
+        "UNDER REVIEW",
+        "APPROVED",
+        "REJECTED"
+      ];
 
-      return res.status(400).json({
+      if (!status) {
 
-        success: false,
+        return res.status(400).json({
 
-        message:
-          "Loan status is required."
+          success: false,
 
-      });
+          message:
+            "Loan status is required."
 
-    }
+        });
 
-    const normalizedStatus =
-      status.toUpperCase();
+      }
 
-    if (
-      !allowedStatuses.includes(
-        normalizedStatus
-      )
-    ) {
+      const normalizedStatus =
+        String(status).trim().toUpperCase();
 
-      return res.status(400).json({
+      if (
+        !allowedStatuses.includes(
+          normalizedStatus
+        )
+      ) {
 
-        success: false,
+        return res.status(400).json({
 
-        message:
-          "Invalid loan status."
+          success: false,
 
-      });
+          message:
+            "Invalid loan status."
 
-    }
+        });
 
-    const application =
-      applications.find(
+      }
 
-        application =>
+      if (
+        normalizedStatus === "REJECTED" &&
+        !rejection_reason
+      ) {
 
-          application.id ===
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "A rejection reason is required when rejecting an application."
+
+        });
+
+      }
+
+      /* =====================================
+         FIND APPLICATION
+      ===================================== */
+
+      const {
+        data: existingApplication,
+        error: findError
+      } = await supabase
+        .from("loan_applications")
+        .select("*")
+        .eq(
+          "id",
           req.params.id
+        )
+        .maybeSingle();
 
+      if (findError) {
+
+        console.error(
+          "FIND LOAN APPLICATION ERROR:",
+          findError
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to find the loan application.",
+
+          error:
+            findError.message
+
+        });
+
+      }
+
+      if (!existingApplication) {
+
+        return res.status(404).json({
+
+          success: false,
+
+          message:
+            "Loan application not found."
+
+        });
+
+      }
+
+      const oldStatus =
+        existingApplication.status;
+
+
+      /* =====================================
+         UPDATE SUPABASE
+      ===================================== */
+
+      const updateData = {
+
+        status:
+          normalizedStatus,
+
+        reviewed_at:
+          new Date().toISOString(),
+
+        reviewed_by:
+          req.admin.email
+
+      };
+
+      if (
+        normalizedStatus === "REJECTED"
+      ) {
+
+        updateData.rejection_reason =
+          rejection_reason || null;
+
+      } else {
+
+        updateData.rejection_reason =
+          null;
+
+      }
+
+      if (
+        notes !== undefined
+      ) {
+
+        updateData.notes =
+          notes;
+
+      }
+
+      const {
+        data: updatedApplication,
+        error: updateError
+      } = await supabase
+        .from("loan_applications")
+        .update(updateData)
+        .eq(
+          "id",
+          req.params.id
+        )
+        .select()
+        .single();
+
+      if (updateError) {
+
+        console.error(
+          "UPDATE LOAN APPLICATION ERROR:",
+          updateError
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to update loan application status.",
+
+          error:
+            updateError.message
+
+        });
+
+      }
+
+
+      /* =====================================
+         AUDIT LOG
+      ===================================== */
+
+      addAuditLog(
+        req.admin.email,
+        "Loan application " +
+        req.params.id +
+        " changed from " +
+        oldStatus +
+        " to " +
+        normalizedStatus
       );
 
-    if (!application) {
 
-      return res.status(404).json({
+      /* =====================================
+         RESPONSE
+      ===================================== */
+
+      res.json({
+
+        success: true,
+
+        message:
+          "Loan application status updated successfully.",
+
+        application:
+          updatedApplication
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "ADMIN LOAN STATUS SERVER ERROR:",
+        error
+      );
+
+      res.status(500).json({
 
         success: false,
 
         message:
-          "Loan application not found."
+          "Loan application status could not be updated.",
+
+        error:
+          error.message
 
       });
 
     }
-
-    const oldStatus =
-      application.status;
-
-    application.status =
-      normalizedStatus;
-
-    application.updated_at =
-      new Date().toISOString();
-
-    application.reviewed_at =
-      new Date().toISOString();
-
-    application.reviewed_by =
-      req.admin.email;
-
-    addAuditLog(
-      req.admin.email,
-      "Loan application " +
-      application.id +
-      " changed from " +
-      oldStatus +
-      " to " +
-      normalizedStatus
-    );
-
-    res.json({
-
-      success: true,
-
-      message:
-        "Loan application status updated successfully.",
-
-      application
-
-    });
 
   }
 );
