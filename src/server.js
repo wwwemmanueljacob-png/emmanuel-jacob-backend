@@ -660,111 +660,263 @@ app.get(
 
 /* =========================================
    ADMIN LOGIN
+   REAL SUPABASE ADMIN
 ========================================= */
 
 app.post(
   "/api/admin/login",
 
-  (req, res) => {
+  async (req, res) => {
 
-    const {
-      email,
-      password
-    } = req.body;
+    try {
 
-    if (
-      !email ||
-      !password
-    ) {
+      const {
+        email,
+        password
+      } = req.body;
 
-      return res.status(400).json({
+      if (
+        !email ||
+        !password
+      ) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Admin email and password are required."
+
+        });
+
+      }
+
+
+      /* =====================================
+         FIND ADMIN IN SUPABASE
+      ===================================== */
+
+      const {
+        data: adminRecord,
+        error: adminError
+      } = await supabase
+        .from("admins")
+        .select(`
+          id,
+          full_name,
+          email,
+          role,
+          phone,
+          photo,
+          is_active,
+          is_verified,
+          auth_user_id
+        `)
+        .ilike(
+          "email",
+          email.trim()
+        )
+        .maybeSingle();
+
+
+      if (adminError) {
+
+        console.error(
+          "ADMIN LOOKUP ERROR:",
+          adminError
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to verify administrator account.",
+
+          error:
+            adminError.message
+
+        });
+
+      }
+
+
+      if (!adminRecord) {
+
+        return res.status(401).json({
+
+          success: false,
+
+          message:
+            "Invalid admin email or password."
+
+        });
+
+      }
+
+
+      /* =====================================
+         CHECK ADMIN ACCOUNT STATUS
+      ===================================== */
+
+      if (
+        adminRecord.is_active === false
+      ) {
+
+        return res.status(403).json({
+
+          success: false,
+
+          message:
+            "This administrator account is inactive."
+
+        });
+
+      }
+
+
+      /* =====================================
+         CHECK PASSWORD
+
+         The current system continues using
+         the Railway ADMIN_PASSWORD variable.
+      ===================================== */
+
+      if (
+        password !==
+        ADMIN_PASSWORD
+      ) {
+
+        return res.status(401).json({
+
+          success: false,
+
+          message:
+            "Invalid admin email or password."
+
+        });
+
+      }
+
+
+      /* =====================================
+         CREATE ADMIN SESSION TOKEN
+      ===================================== */
+
+      const token =
+        createToken();
+
+
+      /* =====================================
+         STORE REAL SUPABASE ADMIN ID
+      ===================================== */
+
+      const admin = {
+
+        id:
+          adminRecord.id,
+
+        name:
+          adminRecord.full_name,
+
+        email:
+          adminRecord.email,
+
+        role:
+          adminRecord.role || "ADMIN",
+
+        phone:
+          adminRecord.phone,
+
+        photo:
+          adminRecord.photo,
+
+        is_verified:
+          adminRecord.is_verified,
+
+        auth_user_id:
+          adminRecord.auth_user_id
+
+      };
+
+
+      adminSessions.set(
+        token,
+        admin
+      );
+
+
+      /* =====================================
+         UPDATE LAST LOGIN
+      ===================================== */
+
+      await supabase
+        .from("admins")
+        .update({
+
+          last_login:
+            new Date().toISOString(),
+
+          failed_attempts:
+            0
+
+        })
+        .eq(
+          "id",
+          adminRecord.id
+        );
+
+
+      /* =====================================
+         AUDIT LOG
+      ===================================== */
+
+      addAuditLog(
+        adminRecord.email,
+        "Administrator logged in"
+      );
+
+
+      /* =====================================
+         RESPONSE
+      ===================================== */
+
+      res.json({
+
+        success: true,
+
+        message:
+          "Administrator login successful.",
+
+        token,
+
+        admin
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "ADMIN LOGIN SERVER ERROR:",
+        error
+      );
+
+      res.status(500).json({
 
         success: false,
 
         message:
-          "Admin email and password are required."
+          "Administrator login could not be completed.",
+
+        error:
+          error.message
 
       });
 
     }
-
-    if (
-      email.toLowerCase() !==
-      ADMIN_EMAIL.toLowerCase()
-    ) {
-
-      return res.status(401).json({
-
-        success: false,
-
-        message:
-          "Invalid admin email or password."
-
-      });
-
-    }
-
-    if (
-      password !==
-      ADMIN_PASSWORD
-    ) {
-
-      return res.status(401).json({
-
-        success: false,
-
-        message:
-          "Invalid admin email or password."
-
-      });
-
-    }
-
-    const token =
-      createToken();
-
-    const admin = {
-
-      id:
-        "ADMIN001",
-
-      name:
-        "Administrator",
-
-      email:
-        ADMIN_EMAIL,
-
-      role:
-        "ADMIN"
-
-    };
-
-    adminSessions.set(
-      token,
-      admin
-    );
-
-    addAuditLog(
-      ADMIN_EMAIL,
-      "Administrator logged in"
-    );
-
-    res.json({
-
-      success: true,
-
-      message:
-        "Administrator login successful.",
-
-      token,
-
-      admin
-
-    });
 
   }
 );
-
 
 /* =========================================
    ADMIN LOGOUT
@@ -1200,7 +1352,7 @@ app.put(
           new Date().toISOString(),
 
         reviewed_by:
-          req.admin.email
+  req.admin.id
 
       };
 
