@@ -907,6 +907,7 @@ app.get(
 
 /* =========================================
    GET ALL LOAN APPLICATIONS
+   REAL SUPABASE DATA
 ========================================= */
 
 app.get(
@@ -914,15 +915,97 @@ app.get(
 
   authenticateAdmin,
 
-  (req, res) => {
+  async (req, res) => {
 
-    res.json({
+    try {
 
-      success: true,
+      const {
+        data,
+        error
+      } = await supabase
+        .from("loan_applications")
+        .select(`
+          id,
+          customer_id,
+          loan_type,
+          amount,
+          duration_months,
+          purpose,
+          status,
+          created_at,
+          applicant_name,
+          phone,
+          email,
+          residential_address,
+          employment_status,
+          monthly_income,
+          business_name,
+          business_address,
+          business_type,
+          monthly_business_income,
+          interest_rate,
+          reviewed_at,
+          reviewed_by,
+          rejection_reason,
+          notes
+        `)
+        .order(
+          "created_at",
+          {
+            ascending: false
+          }
+        );
 
-      applications
+      if (error) {
 
-    });
+        console.error(
+          "ADMIN LOAN APPLICATIONS ERROR:",
+          error
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to load loan applications from Supabase.",
+
+          error:
+            error.message
+
+        });
+
+      }
+
+      res.json({
+
+        success: true,
+
+        applications:
+          data || []
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "ADMIN LOAN APPLICATIONS SERVER ERROR:",
+        error
+      );
+
+      res.status(500).json({
+
+        success: false,
+
+        message:
+          "Loan applications could not be loaded.",
+
+        error:
+          error.message
+
+      });
+
+    }
 
   }
 );
