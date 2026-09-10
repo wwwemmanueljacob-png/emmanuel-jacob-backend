@@ -801,6 +801,7 @@ app.post(
 
 /* =========================================
    GET ALL CUSTOMERS
+   REAL SUPABASE DATA
 ========================================= */
 
 app.get(
@@ -808,43 +809,97 @@ app.get(
 
   authenticateAdmin,
 
-  (req, res) => {
+  async (req, res) => {
 
-    const safeCustomers =
-      customers.map(
+    try {
 
-        customer => ({
+      const {
+        data,
+        error
+      } = await supabase
+        .from("customers")
+        .select(`
+          id,
+          full_name,
+          email,
+          phone,
+          created_at,
+          balance,
+          address,
+          id_number,
+          date_of_birth,
+          occupation,
+          account_number,
+          employment_number,
+          account_status,
+          failed_attempts,
+          locked_until,
+          role,
+          is_verified,
+          updated_at,
+          residential_address,
+          next_of_kin,
+          next_of_kin_home_address,
+          next_of_kin_phone_number,
+          auth_user_id
+        `)
+        .order(
+          "created_at",
+          {
+            ascending: false
+          }
+        );
 
-          id:
-            customer.id,
+      if (error) {
 
-          full_name:
-            customer.full_name,
+        console.error(
+          "ADMIN CUSTOMERS ERROR:",
+          error
+        );
 
-          email:
-            customer.email,
+        return res.status(500).json({
 
-          phone:
-            customer.phone,
+          success: false,
 
-          status:
-            customer.status,
+          message:
+            "Unable to load customers from Supabase.",
 
-          created_at:
-            customer.created_at
+          error:
+            error.message
 
-        })
+        });
 
+      }
+
+      res.json({
+
+        success: true,
+
+        customers:
+          data || []
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "ADMIN CUSTOMERS SERVER ERROR:",
+        error
       );
 
-    res.json({
+      res.status(500).json({
 
-      success: true,
+        success: false,
 
-      customers:
-        safeCustomers
+        message:
+          "Customers could not be loaded.",
 
-    });
+        error:
+          error.message
+
+      });
+
+    }
 
   }
 );
