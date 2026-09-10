@@ -16,13 +16,14 @@ JAY C O B FINANCIAL SERVICES
 HELPER: HASH PASSWORD
 -----------------------------------------------------
 */
-function hashPassword(password) {
-  return crypto
-    .createHash("sha256")
-    .update(password)
-    .digest("hex");
-}
+async function hashPassword(password) {
 
+  return await bcrypt.hash(
+    password,
+    12
+  );
+
+}
 /*
 -----------------------------------------------------
 GENERATE CUSTOMER ACCOUNT NUMBER
@@ -113,8 +114,8 @@ router.post("/api/customers/register", async (req, res) => {
     }
 
     const account_number = generateAccountNumber();
-    const hash_password = hashPassword(password);
-
+    const hash_password =
+  await hashPassword(password);
     const { data, error } = await supabase
       .from("customers")
       .insert([
