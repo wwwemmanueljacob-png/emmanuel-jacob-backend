@@ -114,7 +114,8 @@ router.post("/api/customers/register", async (req, res) => {
     }
 
     const account_number = generateAccountNumber();
-    const hash_password = hashPassword(password);
+    const hash_password =
+  await hashPassword(password);
     const { data, error } = await supabase
       .from("customers")
       .insert([
