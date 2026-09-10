@@ -2521,6 +2521,187 @@ app.post(
 );
 
 /* =========================================
+   ADMIN ACCOUNT RECOVERY
+   VERIFY RECOVERY OTP
+========================================= */
+
+app.post(
+  "/api/admin/recovery/verify",
+
+  async (req, res) => {
+
+    try {
+
+      const {
+        email,
+        otp
+      } = req.body;
+
+
+      if (!email || !otp) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Administrator email and OTP are required."
+
+        });
+
+      }
+
+
+      const normalizedEmail =
+        email.trim().toLowerCase();
+
+
+      const recovery =
+        recoveryRequests.get(
+          normalizedEmail
+        );
+
+
+      if (!recovery) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "No active recovery request was found."
+
+        });
+
+      }
+
+
+      /* =====================================
+         CHECK OTP EXPIRATION
+      ===================================== */
+
+      if (
+        Date.now() >
+        recovery.expiresAt
+      ) {
+
+        recoveryRequests.delete(
+          normalizedEmail
+        );
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "This recovery OTP has expired. Please request a new OTP."
+
+        });
+
+      }
+
+
+      /* =====================================
+         LIMIT OTP ATTEMPTS
+      ===================================== */
+
+      if (
+        recovery.attempts >= 5
+      ) {
+
+        recoveryRequests.delete(
+          normalizedEmail
+        );
+
+        return res.status(429).json({
+
+          success: false,
+
+          message:
+            "Too many incorrect OTP attempts. Please request a new OTP."
+
+        });
+
+      }
+
+
+      /* =====================================
+         CHECK OTP
+      ===================================== */
+
+      if (
+        String(otp).trim() !==
+        recovery.otp
+      ) {
+
+        recovery.attempts += 1;
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Invalid recovery OTP."
+
+        });
+
+      }
+
+
+      /* =====================================
+         OTP VERIFIED
+      ===================================== */
+
+      recovery.verified = true;
+
+      recovery.verifiedAt =
+        Date.now();
+
+
+      /* =====================================
+         SECURITY LOG
+      ===================================== */
+
+      addAuditLog(
+        normalizedEmail,
+        "Administrator recovery OTP verified"
+      );
+
+
+      return res.json({
+
+        success: true,
+
+        message:
+          "Recovery OTP verified successfully.",
+
+        email:
+          normalizedEmail
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "ADMIN RECOVERY OTP VERIFY ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+
+        success: false,
+
+        message:
+          "OTP verification could not be completed."
+
+      });
+
+    }
+
+  }
+);
+
+/* =========================================
    404 HANDLER
 ========================================= */
 
