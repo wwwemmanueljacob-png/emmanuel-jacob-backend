@@ -260,4 +260,78 @@ router.post(
   }
 );
 
+/* =========================================================
+   ADMIN - GET ALL SUPPORT TICKETS
+   GET /api/admin/support-tickets
+========================================================= */
+
+router.get(
+  "/api/admin/support-tickets",
+  async (req, res) => {
+
+    try {
+
+      const { data, error } =
+        await supabase
+          .from("support_tickets")
+          .select(`
+            id,
+            created_at,
+            customer_id,
+            subject,
+            message,
+            category,
+            priority,
+            status,
+            admin_response,
+            assigned_to,
+            updated_at,
+            closed_at
+          `)
+          .order("created_at", {
+            ascending: false
+          });
+
+
+      if (error) {
+
+        console.error(
+          "ADMIN SUPPORT TICKETS DATABASE ERROR:",
+          error
+        );
+
+        return res.status(500).json({
+          success: false,
+          message:
+            "Unable to load support tickets."
+        });
+
+      }
+
+
+      return res.json({
+        success: true,
+        tickets: data || []
+      });
+
+
+    } catch (error) {
+
+      console.error(
+        "ADMIN SUPPORT TICKETS SERVER ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Server error while loading support tickets."
+      });
+
+    }
+
+  }
+);
+
+
 export default router;
