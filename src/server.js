@@ -70,6 +70,7 @@ const ADMIN_PASSWORD =
   process.env.ADMIN_PASSWORD ||
   "admin123456";
 
+let recoveredAdminPassword = null;
 
 /* =========================================
    TEMPORARY DATABASE
@@ -783,9 +784,9 @@ app.post(
       ===================================== */
 
       if (
-        password !==
-        ADMIN_PASSWORD
-      ) {
+  password !==
+  (recoveredAdminPassword || ADMIN_PASSWORD)
+) {
 
         return res.status(401).json({
 
@@ -2693,6 +2694,229 @@ app.post(
 
         message:
           "OTP verification could not be completed."
+
+      });
+
+    }
+
+  }
+);
+
+/* =========================================
+   ADMIN ACCOUNT RECOVERY
+   RESET ADMIN PASSWORD
+========================================= */
+
+app.post(
+  "/api/admin/recovery/reset-password",
+
+  async (req, res) => {
+
+    try {
+
+      const {
+        email,
+        otp,
+        newPassword
+      } = req.body;
+
+
+      /* =====================================
+         VALIDATE INPUT
+      ===================================== */
+
+      if (
+        !email ||
+        !otp ||
+        !newPassword
+      ) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Email, OTP and new password are required."
+
+        });
+
+      }
+
+
+      const normalizedEmail =
+        email.trim().toLowerCase();
+
+
+      /* =====================================
+         FIND RECOVERY REQUEST
+      ===================================== */
+
+      const recovery =
+        recoveryRequests.get(
+          normalizedEmail
+        );
+
+
+      if (!recovery) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "No active recovery request was found. Please request a new OTP."
+
+        });
+
+      }
+
+
+      /* =====================================
+         CHECK OTP EXPIRATION
+      ===================================== */
+
+      if (
+        Date.now() >
+        recovery.expiresAt
+      ) {
+
+        recoveryRequests.delete(
+          normalizedEmail
+        );
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "This recovery OTP has expired. Please request a new OTP."
+
+        });
+
+      }
+
+
+      /* =====================================
+         CHECK OTP
+      ===================================== */
+
+      if (
+        String(otp).trim() !==
+        recovery.otp
+      ) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Invalid recovery OTP."
+
+        });
+
+      }
+
+
+      /* =====================================
+         REQUIRE STRONG PASSWORD
+      ===================================== */
+
+      if (
+        String(newPassword).length < 8
+      ) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "New password must contain at least 8 characters."
+
+        });
+
+      }
+
+
+      /* =====================================
+         CHECK OTP WAS VERIFIED
+      ===================================== */
+
+      if (
+        recovery.verified !== true
+      ) {
+
+        return res.status(403).json({
+
+          success: false,
+
+          message:
+            "Please verify the recovery OTP before resetting the password."
+
+        });
+
+      }
+
+
+      /* =====================================
+         SET NEW PASSWORD
+      ===================================== */
+
+      recoveredAdminPassword =
+        String(newPassword);
+
+
+      /* =====================================
+         INVALIDATE RECOVERY REQUEST
+      ===================================== */
+
+      recoveryRequests.delete(
+        normalizedEmail
+      );
+
+
+      /* =====================================
+         LOG SECURITY EVENT
+      ===================================== */
+
+      addAuditLog(
+        normalizedEmail,
+        "Administrator password reset successfully"
+      );
+
+
+      /* =====================================
+         LOGOUT EXISTING ADMIN SESSIONS
+      ===================================== */
+
+      adminSessions.clear();
+
+
+      /* =====================================
+         RESPONSE
+      ===================================== */
+
+      return res.json({
+
+        success: true,
+
+        message:
+          "Administrator password reset successfully. You can now log in with your new password."
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "ADMIN PASSWORD RESET ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+
+        success: false,
+
+        message:
+          "Administrator password reset could not be completed."
 
       });
 
