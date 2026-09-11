@@ -1948,125 +1948,883 @@ app.put(
 
 
 /* =========================================
-   ADMIN STATISTICS
+   ADMIN STATISTICS — SUPABASE
 ========================================= */
 
 app.get(
   "/api/admin/statistics",
-
   authenticateAdmin,
+  async (req, res) => {
 
-  (req, res) => {
+    try {
 
-    const pending =
-      applications.filter(
+      /*
+       * Fetch all rows in batches so statistics
+       * are not limited by Supabase's default
+       * 1,000-row response limit.
+       */
+      const fetchAllRows = async (table, columns) => {
 
-        app =>
-          app.status ===
-          "PENDING"
+        const allRows = [];
+        const pageSize = 1000;
+        let from = 0;
 
-      ).length;
+        while (true) {
 
-    const underReview =
-      applications.filter(
+          const { data, error } = await supabase
+            .from(table)
+            .select(columns)
+            .range(from, from + pageSize - 1);
 
-        app =>
-          app.status ===
-          "UNDER REVIEW"
+          if (error) {
+            throw new Error(
+              `${table}: ${error.message}`
+            );
+          }
 
-      ).length;
+          if (!data || data.length === 0) {
+            break;
+          }
 
-    const approved =
-      applications.filter(
+          allRows.push(...data);
 
-        app =>
-          app.status ===
-          "APPROVED"
+          if (data.length < pageSize) {
+            break;
+          }
 
-      ).length;
+          from += pageSize;
+        }
 
-    const rejected =
-      applications.filter(
+        return allRows;
+      };
 
-        app =>
-          app.status ===
-          "REJECTED"
 
-      ).length;
+      /* =====================================
+         LOAD STATISTICS DATA
+      ===================================== */
 
-    const totalRequested =
-      applications.reduce(
+      const [
+        customersData,
+        adminsData,
+        applicationsData,
+        loansData,
+        schedulesData,
+        repaymentsData,
+        depositsData,
+        withdrawalsData,
+        transfersData,
+        feesData,
+        savingsData,
+        interestData
+      ] = await Promise.all([
 
-        (total, application) =>
+        fetchAllRows(
+          "customers",
+          "id,created_at,balance,account_status,is_verified,failed_attempts,locked_until"
+        ),
 
-          total +
-          Number(
-            application.amount || 0
-          ),
+        fetchAllRows(
+          "admins",
+          "id,created_at,is_active,is_verified,failed_attempts,locked_until,last_login"
+        ),
 
-        0
+        fetchAllRows(
+          "loan_applications",
+          "id,customer_id,loan_type,amount,status,created_at,interest_rate"
+        ),
 
+        fetchAllRows(
+          "loans",
+          "id,customer_id,created_at,loan_amount,interest_rate,total_amount,amount_paid,remaining_balance,loan_status,application_date,approval_date,due_date"
+        ),
+
+        fetchAllRows(
+          "loan schedules",
+          "id,created_at,loan_id,customer_id,installment_number,due_date,amount_due,amount_paid,remaining_amount,status,paid_date"
+        ),
+
+        fetchAllRows(
+          "repayments",
+          "id,created_at,loan_id,customer_id,amount,status,payment_date"
+        ),
+
+        fetchAllRows(
+          "deposits",
+          "id,created_at,customer_id,amount,status"
+        ),
+
+        fetchAllRows(
+          "withdrawals",
+          "id,created_at,customer_id,amount,status"
+        ),
+
+        fetchAllRows(
+          "transfers",
+          "id,created_at,sender_customer_id,amount,status"
+        ),
+
+        fetchAllRows(
+          "fees",
+          "id,created_at,customer_id,loan_id,amount,status"
+        ),
+
+        fetchAllRows(
+          "savings",
+          "id,created_at,customer_id,amount,transaction_type,status,balance_after"
+        ),
+
+        fetchAllRows(
+          "interest_records",
+          "id,created_at,loan_id,customer_id,interest_amount,status"
+        )
+
+      ]);
+
+
+      /* =====================================
+         HELPER FUNCTIONS
+      ===================================== */
+
+      const money = (value) =>
+        Number(value || 0);
+
+
+      const normalize = (value) =>
+        String(value || "")
+          .trim()
+          .toLowerCase();
+
+
+      const isStatus = (row, ...statuses) => {
+
+        const status = normalize(row.status);
+
+        return statuses.some(
+          item => status === normalize(item)
+        );
+
+      };
+
+
+      const isLoanStatus = (row, ...statuses) => {
+
+        const status = normalize(row.loan_status);
+
+        return statuses.some(
+          item => status === normalize(item)
+        );
+
+      };
+
+
+      const startOfMonth = new Date();
+
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+
+      const isThisMonth = (date) => {
+
+        if (!date) return false;
+
+        const value = new Date(date);
+
+        return value >= startOfMonth;
+      };
+
+
+      /* =====================================
+         CUSTOMER STATISTICS
+      ===================================== */
+
+      const totalCustomerBalance =
+        customersData.reduce(
+          (sum, customer) =>
+            sum + money(customer.balance),
+          0
+        );
+
+
+      const activeCustomers =
+        customersData.filter(
+          customer =>
+            normalize(customer.account_status) === "active"
+        ).length;
+
+
+      const verifiedCustomers =
+        customersData.filter(
+          customer => customer.is_verified === true
+        ).length;
+
+
+      const lockedCustomers =
+        customersData.filter(
+          customer =>
+            customer.locked_until &&
+            new Date(customer.locked_until) > new Date()
+        ).length;
+
+
+      /* =====================================
+         ADMIN STATISTICS
+      ===================================== */
+
+      const activeAdmins =
+        adminsData.filter(
+          admin => admin.is_active === true
+        ).length;
+
+
+      const verifiedAdmins =
+        adminsData.filter(
+          admin => admin.is_verified === true
+        ).length;
+
+
+      const lockedAdmins =
+        adminsData.filter(
+          admin =>
+            admin.locked_until &&
+            new Date(admin.locked_until) > new Date()
+        ).length;
+
+
+      /* =====================================
+         LOAN APPLICATION STATISTICS
+      ===================================== */
+
+      const pendingApplications =
+        applicationsData.filter(
+          application =>
+            normalize(application.status) === "pending"
+        ).length;
+
+
+      const underReviewApplications =
+        applicationsData.filter(
+          application =>
+            normalize(application.status) === "under review"
+        ).length;
+
+
+      const approvedApplications =
+        applicationsData.filter(
+          application =>
+            normalize(application.status) === "approved"
+        ).length;
+
+
+      const rejectedApplications =
+        applicationsData.filter(
+          application =>
+            normalize(application.status) === "rejected"
+        ).length;
+
+
+      const totalRequested =
+        applicationsData.reduce(
+          (sum, application) =>
+            sum + money(application.amount),
+          0
+        );
+
+
+      const approvedRequested =
+        applicationsData
+          .filter(
+            application =>
+              normalize(application.status) === "approved"
+          )
+          .reduce(
+            (sum, application) =>
+              sum + money(application.amount),
+            0
+          );
+
+
+      const personalLoans =
+        applicationsData.filter(
+          application =>
+            normalize(application.loan_type)
+              .includes("personal")
+        ).length;
+
+
+      const businessLoans =
+        applicationsData.filter(
+          application =>
+            normalize(application.loan_type)
+              .includes("business")
+        ).length;
+
+
+      /* =====================================
+         LOAN STATISTICS
+      ===================================== */
+
+      const totalLoanAmount =
+        loansData.reduce(
+          (sum, loan) =>
+            sum + money(loan.loan_amount),
+          0
+        );
+
+
+      const totalLoanValue =
+        loansData.reduce(
+          (sum, loan) =>
+            sum + money(loan.total_amount),
+          0
+        );
+
+
+      const totalAmountPaid =
+        loansData.reduce(
+          (sum, loan) =>
+            sum + money(loan.amount_paid),
+          0
+        );
+
+
+      const totalRemainingBalance =
+        loansData.reduce(
+          (sum, loan) =>
+            sum + money(loan.remaining_balance),
+          0
+        );
+
+
+      const activeLoans =
+        loansData.filter(
+          loan =>
+            ["active", "approved", "running"]
+              .includes(normalize(loan.loan_status))
+        ).length;
+
+
+      const completedLoans =
+        loansData.filter(
+          loan =>
+            ["completed", "paid", "closed"]
+              .includes(normalize(loan.loan_status))
+        ).length;
+
+
+      const overdueLoans =
+        loansData.filter(loan => {
+
+          if (!loan.due_date) return false;
+
+          const dueDate =
+            new Date(loan.due_date);
+
+          return (
+            dueDate < new Date() &&
+            money(loan.remaining_balance) > 0
+          );
+
+        }).length;
+
+
+      /* =====================================
+         LOAN SCHEDULE STATISTICS
+      ===================================== */
+
+      const totalScheduledAmount =
+        schedulesData.reduce(
+          (sum, schedule) =>
+            sum + money(schedule.amount_due),
+          0
+        );
+
+
+      const totalScheduledPaid =
+        schedulesData.reduce(
+          (sum, schedule) =>
+            sum + money(schedule.amount_paid),
+          0
+        );
+
+
+      const totalScheduledRemaining =
+        schedulesData.reduce(
+          (sum, schedule) =>
+            sum + money(schedule.remaining_amount),
+          0
+        );
+
+
+      const overdueSchedules =
+        schedulesData.filter(schedule => {
+
+          if (!schedule.due_date) return false;
+
+          return (
+            new Date(schedule.due_date) < new Date() &&
+            money(schedule.remaining_amount) > 0
+          );
+
+        }).length;
+
+
+      /* =====================================
+         REPAYMENT STATISTICS
+      ===================================== */
+
+      const totalRepayments =
+        repaymentsData.length;
+
+
+      const totalRepaymentAmount =
+        repaymentsData.reduce(
+          (sum, repayment) =>
+            sum + money(repayment.amount),
+          0
+        );
+
+
+      const completedRepayments =
+        repaymentsData.filter(
+          repayment =>
+            isStatus(
+              repayment,
+              "completed",
+              "paid",
+              "approved",
+              "success",
+              "successful"
+            )
+        ).length;
+
+
+      const completedRepaymentAmount =
+        repaymentsData
+          .filter(
+            repayment =>
+              isStatus(
+                repayment,
+                "completed",
+                "paid",
+                "approved",
+                "success",
+                "successful"
+              )
+          )
+          .reduce(
+            (sum, repayment) =>
+              sum + money(repayment.amount),
+            0
+          );
+
+
+      /* =====================================
+         DEPOSIT STATISTICS
+      ===================================== */
+
+      const totalDeposits =
+        depositsData.length;
+
+
+      const totalDepositAmount =
+        depositsData.reduce(
+          (sum, deposit) =>
+            sum + money(deposit.amount),
+          0
+        );
+
+
+      const completedDeposits =
+        depositsData.filter(
+          deposit =>
+            isStatus(
+              deposit,
+              "completed",
+              "approved",
+              "success",
+              "successful"
+            )
+        );
+
+
+      const completedDepositAmount =
+        completedDeposits.reduce(
+          (sum, deposit) =>
+            sum + money(deposit.amount),
+          0
+        );
+
+
+      /* =====================================
+         WITHDRAWAL STATISTICS
+      ===================================== */
+
+      const totalWithdrawals =
+        withdrawalsData.length;
+
+
+      const totalWithdrawalAmount =
+        withdrawalsData.reduce(
+          (sum, withdrawal) =>
+            sum + money(withdrawal.amount),
+          0
+        );
+
+
+      const completedWithdrawals =
+        withdrawalsData.filter(
+          withdrawal =>
+            isStatus(
+              withdrawal,
+              "completed",
+              "approved",
+              "success",
+              "successful"
+            )
+        );
+
+
+      const completedWithdrawalAmount =
+        completedWithdrawals.reduce(
+          (sum, withdrawal) =>
+            sum + money(withdrawal.amount),
+          0
+        );
+
+
+      /* =====================================
+         TRANSFER STATISTICS
+      ===================================== */
+
+      const totalTransfers =
+        transfersData.length;
+
+
+      const totalTransferAmount =
+        transfersData.reduce(
+          (sum, transfer) =>
+            sum + money(transfer.amount),
+          0
+        );
+
+
+      const completedTransfers =
+        transfersData.filter(
+          transfer =>
+            isStatus(
+              transfer,
+              "completed",
+              "approved",
+              "success",
+              "successful"
+            )
+        );
+
+
+      const completedTransferAmount =
+        completedTransfers.reduce(
+          (sum, transfer) =>
+            sum + money(transfer.amount),
+          0
+        );
+
+
+      /* =====================================
+         FEES
+      ===================================== */
+
+      const totalFees =
+        feesData.reduce(
+          (sum, fee) =>
+            sum + money(fee.amount),
+          0
+        );
+
+
+      const paidFees =
+        feesData
+          .filter(
+            fee =>
+              isStatus(
+                fee,
+                "paid",
+                "completed",
+                "approved",
+                "success",
+                "successful"
+              )
+          )
+          .reduce(
+            (sum, fee) =>
+              sum + money(fee.amount),
+            0
+          );
+
+
+      /* =====================================
+         SAVINGS
+      ===================================== */
+
+      const totalSavingsTransactions =
+        savingsData.length;
+
+
+      const totalSavingsAmount =
+        savingsData.reduce(
+          (sum, saving) =>
+            sum + money(saving.amount),
+          0
+        );
+
+
+      /* =====================================
+         INTEREST
+      ===================================== */
+
+      const totalInterestRecords =
+        interestData.length;
+
+
+      const totalInterestAmount =
+        interestData.reduce(
+          (sum, record) =>
+            sum + money(record.interest_amount),
+          0
+        );
+
+
+      /* =====================================
+         MONTHLY ACTIVITY
+      ===================================== */
+
+      const newCustomersThisMonth =
+        customersData.filter(
+          customer =>
+            isThisMonth(customer.created_at)
+        ).length;
+
+
+      const applicationsThisMonth =
+        applicationsData.filter(
+          application =>
+            isThisMonth(application.created_at)
+        ).length;
+
+
+      const loansThisMonth =
+        loansData.filter(
+          loan =>
+            isThisMonth(loan.created_at)
+        ).length;
+
+
+      const repaymentsThisMonth =
+        repaymentsData.filter(
+          repayment =>
+            isThisMonth(
+              repayment.payment_date ||
+              repayment.created_at
+            )
+        );
+
+
+      const repaymentsThisMonthAmount =
+        repaymentsThisMonth.reduce(
+          (sum, repayment) =>
+            sum + money(repayment.amount),
+          0
+        );
+
+
+      /* =====================================
+         RESPONSE
+      ===================================== */
+
+      res.json({
+
+        success: true,
+
+        statistics: {
+
+          /* Customers */
+
+          totalCustomers:
+            customersData.length,
+
+          activeCustomers,
+
+          verifiedCustomers,
+
+          lockedCustomers,
+
+          totalCustomerBalance,
+
+          newCustomersThisMonth,
+
+
+          /* Admins */
+
+          totalAdmins:
+            adminsData.length,
+
+          activeAdmins,
+
+          verifiedAdmins,
+
+          lockedAdmins,
+
+
+          /* Applications */
+
+          totalApplications:
+            applicationsData.length,
+
+          pendingApplications,
+
+          underReviewApplications,
+
+          approvedLoans:
+            approvedApplications,
+
+          rejectedApplications,
+
+          totalRequested,
+
+          approvedRequested,
+
+          personalLoans,
+
+          businessLoans,
+
+          applicationsThisMonth,
+
+
+          /* Loans */
+
+          totalLoans:
+            loansData.length,
+
+          activeLoans,
+
+          completedLoans,
+
+          overdueLoans,
+
+          totalLoanAmount,
+
+          totalLoanValue,
+
+          totalAmountPaid,
+
+          totalRemainingBalance,
+
+          loansThisMonth,
+
+
+          /* Loan schedules */
+
+          totalSchedules:
+            schedulesData.length,
+
+          totalScheduledAmount,
+
+          totalScheduledPaid,
+
+          totalScheduledRemaining,
+
+          overdueSchedules,
+
+
+          /* Repayments */
+
+          totalRepayments,
+
+          totalRepaymentAmount,
+
+          completedRepayments,
+
+          completedRepaymentAmount,
+
+          repaymentsThisMonth:
+            repaymentsThisMonth.length,
+
+          repaymentsThisMonthAmount,
+
+
+          /* Deposits */
+
+          totalDeposits,
+
+          totalDepositAmount,
+
+          completedDepositAmount,
+
+
+          /* Withdrawals */
+
+          totalWithdrawals,
+
+          totalWithdrawalAmount,
+
+          completedWithdrawalAmount,
+
+
+          /* Transfers */
+
+          totalTransfers,
+
+          totalTransferAmount,
+
+          completedTransferAmount,
+
+
+          /* Fees */
+
+          totalFees,
+
+          paidFees,
+
+
+          /* Savings */
+
+          totalSavingsTransactions,
+
+          totalSavingsAmount,
+
+
+          /* Interest */
+
+          totalInterestRecords,
+
+          totalInterestAmount
+
+        }
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "Admin statistics error:",
+        error
       );
 
-    const personalLoans =
-      applications.filter(
+      res.status(500).json({
 
-        app =>
+        success: false,
 
-          app.loan_type
-            ?.toLowerCase()
-            .includes("personal")
+        message:
+          "Failed to load admin statistics.",
 
-      ).length;
+        error:
+          error.message
 
-    const businessLoans =
-      applications.filter(
+      });
 
-        app =>
-
-          app.loan_type
-            ?.toLowerCase()
-            .includes("business")
-
-      ).length;
-
-    res.json({
-
-      success: true,
-
-      statistics: {
-
-        totalCustomers:
-          customers.length,
-
-        totalApplications:
-          applications.length,
-
-        pendingApplications:
-          pending,
-
-        underReviewApplications:
-          underReview,
-
-        approvedLoans:
-          approved,
-
-        rejectedApplications:
-          rejected,
-
-        totalRequested,
-
-        personalLoans,
-
-        businessLoans
-
-      }
-
-    });
+    }
 
   }
 );
-
 
 /* =========================================
    CREATE FOLLOW-UP
