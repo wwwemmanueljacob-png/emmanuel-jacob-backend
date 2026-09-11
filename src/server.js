@@ -238,6 +238,79 @@ function authenticateAdmin(
 
 }
 
+/* =========================================
+   ADMIN PROFILE
+========================================= */
+
+app.get(
+  "/api/admin/profile",
+  authenticateAdmin,
+  async (req, res) => {
+
+    try {
+
+      const admin =
+        req.admin;
+
+      return res.json({
+
+        success: true,
+
+        admin: {
+
+          id:
+            admin.id,
+
+          full_name:
+            admin.full_name ||
+            admin.name ||
+            "",
+
+          email:
+            admin.email ||
+            "",
+
+          role:
+            admin.role ||
+            "Administrator",
+
+          phone:
+            admin.phone ||
+            "",
+
+          photo:
+            admin.photo ||
+            "",
+
+          status:
+            admin.status ||
+            "ACTIVE"
+
+        }
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "Admin profile error:",
+        error
+      );
+
+      return res.status(500).json({
+
+        success: false,
+
+        message:
+          "Unable to load administrator profile."
+
+      });
+
+    }
+
+  }
+);
+
 
 /* =========================================
    HOME
