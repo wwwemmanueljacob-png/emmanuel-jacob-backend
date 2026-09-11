@@ -1339,25 +1339,90 @@ app.post(
 
   authenticateAdmin,
 
-  (req, res) => {
+  async (req, res) => {
 
-    adminSessions.delete(
-      req.adminToken
-    );
+    try {
 
-    addAuditLog(
-      req.admin.email,
-      "Administrator logged out"
-    );
+      /* =====================================
+         MARK SUPABASE SESSION AS LOGGED OUT
+      ===================================== */
 
-    res.json({
+      const { error } =
+        await supabase
+          .from("admin_sessions")
+          .update({
 
-      success: true,
+            is_active:
+              false,
 
-      message:
-        "Administrator logged out successfully."
+            logged_out_at:
+              new Date().toISOString(),
 
-    });
+            last_activity:
+              new Date().toISOString()
+
+          })
+          .eq(
+            "session_token",
+            req.adminToken
+          );
+
+
+      if (error) {
+
+        console.error(
+          "ADMIN LOGOUT SESSION ERROR:",
+          error
+        );
+
+      }
+
+
+      /* =====================================
+         REMOVE MEMORY SESSION
+      ===================================== */
+
+      adminSessions.delete(
+        req.adminToken
+      );
+
+
+      /* =====================================
+         AUDIT LOG
+      ===================================== */
+
+      addAuditLog(
+        req.admin.email,
+        "Administrator logged out"
+      );
+
+
+      res.json({
+
+        success: true,
+
+        message:
+          "Administrator logged out successfully."
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "ADMIN LOGOUT ERROR:",
+        error
+      );
+
+      res.status(500).json({
+
+        success: false,
+
+        message:
+          "Administrator logout could not be completed."
+
+      });
+
+    }
 
   }
 );
