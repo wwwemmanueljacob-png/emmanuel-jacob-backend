@@ -17,6 +17,7 @@ import kycRouter from "./routes/kyc.js";
 import supportRouter from "./routes/support.js";
 import adminFeesRouter from "./routes/AdminFees.js";
 import adminSavingsRouter from "./routes/AdminSavings.js";
+import adminDepositsRouter from "./routes/AdminDeposits.js";
 
 dotenv.config();
 
@@ -59,6 +60,7 @@ app.use(supportRouter);
 
 app.use("/api/admin/fees", authenticateAdmin, adminFeesRouter);
 app.use("/api/admin/savings", authenticateAdmin, adminSavingsRouter);
+app.use("/api/admin/deposits", authenticateAdmin, adminDepositsRouter);
 
 /* =========================================
    ADMIN CONFIGURATION
