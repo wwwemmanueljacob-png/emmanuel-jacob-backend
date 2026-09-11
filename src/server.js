@@ -167,7 +167,7 @@ function addAuditLog(
    ADMIN AUTHENTICATION MIDDLEWARE
 ========================================= */
 
-function authenticateAdmin(
+async function authenticateAdmin(
   req,
   res,
   next
@@ -212,21 +212,275 @@ function authenticateAdmin(
   const token =
     parts[1];
 
-  const admin =
+
+  /* =====================================
+     CHECK MEMORY SESSION FIRST
+  ===================================== */
+
+  let admin =
     adminSessions.get(token);
+
+
+  /* =====================================
+     IF NOT IN MEMORY, CHECK SUPABASE
+  ===================================== */
 
   if (!admin) {
 
-    return res.status(401).json({
+    try {
 
-      success: false,
+      const {
+        data: session,
+        error: sessionError
+      } = await supabase
+        .from("admin_sessions")
+        .select(`
+          id,
+          admin_id,
+          session_token,
+          expires_at,
+          last_activity,
+          is_active
+        `)
+        .eq(
+          "session_token",
+          token
+        )
+        .eq(
+          "is_active",
+          true
+        )
+        .maybeSingle();
 
-      message:
-        "Admin session is invalid or expired."
 
-    });
+      if (sessionError) {
+
+        console.error(
+          "ADMIN SESSION LOOKUP ERROR:",
+          sessionError
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to verify administrator session."
+
+        });
+
+      }
+
+
+      /* =================================
+         SESSION NOT FOUND
+      ================================= */
+
+      if (!session) {
+
+        return res.status(401).json({
+
+          success: false,
+
+          message:
+            "Admin session is invalid or expired."
+
+        });
+
+      }
+
+
+      /* =================================
+         CHECK SESSION EXPIRATION
+      ================================= */
+
+      if (
+        session.expires_at &&
+        new Date(session.expires_at) <= new Date()
+      ) {
+
+        await supabase
+          .from("admin_sessions")
+          .update({
+
+            is_active:
+              false,
+
+            logged_out_at:
+              new Date().toISOString()
+
+          })
+          .eq(
+            "id",
+            session.id
+          );
+
+        return res.status(401).json({
+
+          success: false,
+
+          message:
+            "Admin session has expired."
+
+        });
+
+      }
+
+
+      /* =================================
+         LOAD ADMIN FROM SUPABASE
+      ================================= */
+
+      const {
+        data: adminRecord,
+        error: adminError
+      } = await supabase
+        .from("admins")
+        .select(`
+          id,
+          full_name,
+          email,
+          role,
+          phone,
+          photo,
+          is_active,
+          is_verified,
+          auth_user_id
+        `)
+        .eq(
+          "id",
+          session.admin_id
+        )
+        .maybeSingle();
+
+
+      if (adminError) {
+
+        console.error(
+          "ADMIN SESSION PROFILE ERROR:",
+          adminError
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to load administrator account."
+
+        });
+
+      }
+
+
+      if (
+        !adminRecord ||
+        adminRecord.is_active === false
+      ) {
+
+        return res.status(401).json({
+
+          success: false,
+
+          message:
+            "Administrator account is inactive or unavailable."
+
+        });
+
+      }
+
+
+      /* =================================
+         REBUILD ADMIN SESSION IN MEMORY
+      ================================= */
+
+      admin = {
+
+        id:
+          adminRecord.id,
+
+        name:
+          adminRecord.full_name,
+
+        email:
+          adminRecord.email,
+
+        role:
+          adminRecord.role || "ADMIN",
+
+        phone:
+          adminRecord.phone,
+
+        photo:
+          adminRecord.photo,
+
+        is_verified:
+          adminRecord.is_verified,
+
+        auth_user_id:
+          adminRecord.auth_user_id
+
+      };
+
+
+      adminSessions.set(
+        token,
+        admin
+      );
+
+    } catch (error) {
+
+      console.error(
+        "ADMIN SESSION RESTORE ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+
+        success: false,
+
+        message:
+          "Unable to restore administrator session."
+
+      });
+
+    }
 
   }
+
+
+  /* =====================================
+     UPDATE LAST ACTIVITY
+  ===================================== */
+
+  try {
+
+    await supabase
+      .from("admin_sessions")
+      .update({
+
+        last_activity:
+          new Date().toISOString()
+
+      })
+      .eq(
+        "session_token",
+        token
+      )
+      .eq(
+        "is_active",
+        true
+      );
+
+  } catch (error) {
+
+    console.warn(
+      "ADMIN SESSION ACTIVITY UPDATE ERROR:",
+      error
+    );
+
+  }
+
 
   req.admin =
     admin;
@@ -920,6 +1174,90 @@ app.post(
       );
 
 
+      /* =====================================
+   SAVE ADMIN SESSION TO SUPABASE
+===================================== */
+
+const now =
+  new Date();
+
+const expiresAt =
+  new Date(
+    now.getTime() +
+    (24 * 60 * 60 * 1000)
+  );
+
+const ipAddress =
+  req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+  req.socket?.remoteAddress ||
+  "";
+
+const userAgent =
+  req.headers["user-agent"] ||
+  "";
+
+const deviceInfo =
+  userAgent;
+
+
+const {
+  error: sessionError
+} = await supabase
+  .from("admin_sessions")
+  .insert({
+
+    admin_id:
+      adminRecord.id,
+
+    session_token:
+      token,
+
+    ip_address:
+      ipAddress,
+
+    user_agent:
+      userAgent,
+
+    device_info:
+      deviceInfo,
+
+    expires_at:
+      expiresAt.toISOString(),
+
+    last_activity:
+      now.toISOString(),
+
+    is_active:
+      true
+
+  });
+
+
+if(sessionError){
+
+  console.error(
+    "ADMIN SESSION SAVE ERROR:",
+    sessionError
+  );
+
+  adminSessions.delete(
+    token
+  );
+
+  return res.status(500).json({
+
+    success: false,
+
+    message:
+      "Administrator session could not be created.",
+
+    error:
+      sessionError.message
+
+  });
+
+}
+      
       /* =====================================
          UPDATE LAST LOGIN
       ===================================== */
