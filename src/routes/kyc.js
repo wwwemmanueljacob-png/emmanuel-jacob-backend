@@ -22,7 +22,7 @@ router.get(
       }
 
       const { data, error } = await supabase
-        .from("kyc_documents")
+        .from("kyc")
         .select(`
           id,
           created_at,
