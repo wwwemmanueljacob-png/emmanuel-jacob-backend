@@ -21,21 +21,18 @@ router.get("/", async (req, res) => {
           created_at,
           customer_id,
           account_id,
-          statement_type,
-          period_start,
-          period_end,
-          opening_balance,
-          closing_balance,
-          total_deposits,
-          total_withdrawals,
-          total_transfers,
-          total_repayments,
-          status,
-          generated_by
+          transaction_id,
+          transaction_type,
+          reference_number,
+          description,
+          debit,
+          credit,
+          balance_after,
+          transaction_date
         `)
 
         .order(
-          "created_at",
+          "transaction_date",
           {
             ascending: false
           }
@@ -115,17 +112,14 @@ router.get("/:id", async (req, res) => {
           created_at,
           customer_id,
           account_id,
-          statement_type,
-          period_start,
-          period_end,
-          opening_balance,
-          closing_balance,
-          total_deposits,
-          total_withdrawals,
-          total_transfers,
-          total_repayments,
-          status,
-          generated_by
+          transaction_id,
+          transaction_type,
+          reference_number,
+          description,
+          debit,
+          credit,
+          balance_after,
+          transaction_date
         `)
 
         .eq(
