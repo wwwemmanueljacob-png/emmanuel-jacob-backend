@@ -482,4 +482,81 @@ router.delete("/api/customers/:id", async (req, res) => {
   }
 });
 
+    /*
+    -----------------------------------------------------
+    UPLOAD KYC DOCUMENT
+    -----------------------------------------------------
+    */
+
+    const fileExtension =
+      kyc_file.originalname.includes(".")
+        ? kyc_file.originalname.split(".").pop()
+        : "bin";
+
+    const filePath =
+      `${data.id}/${Date.now()}-${crypto.randomUUID()}.${fileExtension}`;
+
+    const { error: uploadError } =
+      await supabase.storage
+        .from("kyc-documents")
+        .upload(
+          filePath,
+          kyc_file.buffer,
+          {
+            contentType: kyc_file.mimetype,
+            upsert: false
+          }
+        );
+
+    if (uploadError) {
+
+      console.error(
+        "KYC upload error:",
+        uploadError
+      );
+
+      return res.status(500).json({
+        success: false,
+        message: "Customer created, but KYC document upload failed",
+        error: uploadError.message
+      });
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    CREATE KYC RECORD
+    -----------------------------------------------------
+    */
+
+    const { error: kycError } =
+      await supabase
+        .from("KYC")
+        .insert([
+          {
+            customer_id: data.id,
+            document_type: kyc_type,
+            document_number: kyc_number,
+            document_url: filePath,
+            status: "PENDING",
+            submitted_at: new Date().toISOString()
+          }
+        ]);
+
+    if (kycError) {
+
+      console.error(
+        "KYC database error:",
+        kycError
+      );
+
+      return res.status(500).json({
+        success: false,
+        message: "Customer created, but KYC record could not be saved",
+        error: kycError.message
+      });
+
+    }
+
 export default router;
