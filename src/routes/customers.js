@@ -6,6 +6,9 @@ import { supabase } from "../lib/supabase.js";
 
 const router = express.Router();
 
+function generateSessionToken() {
+  return crypto.randomBytes(48).toString("hex");
+}
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -430,13 +433,103 @@ router.post(
       -----------------------------------------------------
       */
 
+            /*
+      -----------------------------------------------------
+      CREATE CUSTOMER SESSION
+      -----------------------------------------------------
+      */
+
+      const sessionToken =
+        generateSessionToken();
+
+      const now =
+        new Date();
+
+      const expiresAt =
+        new Date(
+          now.getTime() +
+          24 * 60 * 60 * 1000
+        );
+
+      const ipAddress =
+        req.headers["x-forwarded-for"] ||
+        req.socket.remoteAddress ||
+        null;
+
+      const userAgent =
+        req.headers["user-agent"] ||
+        null;
+
+      const deviceInfo =
+        req.headers["sec-ch-ua"] ||
+        userAgent ||
+        null;
+
+
+      const {
+        error: sessionError
+      } = await supabase
+        .from("customer_sessions")
+        .insert([
+          {
+            customer_id:
+              data.id,
+
+            session_token:
+              sessionToken,
+
+            ip_address:
+              ipAddress,
+
+            user_agent:
+              userAgent,
+
+            device_info:
+              deviceInfo,
+
+            expires_at:
+              expiresAt.toISOString(),
+
+            last_activity:
+              now.toISOString(),
+
+            is_active:
+              true,
+
+            logged_out_at:
+              null
+          }
+        ]);
+
+
+      if (sessionError) {
+
+        console.error(
+          "Customer session error:",
+          sessionError
+        );
+
+        return res.status(500).json({
+          success: false,
+          message:
+            "Customer and KYC created, but customer session could not be created",
+          error:
+            sessionError.message
+        });
+
+      }
+      
       return res.status(201).json({
-        success: true,
-        message:
-          "Customer registered successfully",
-        customer:
-          data
-      });
+  success: true,
+  message:
+    "Customer registered successfully",
+  session_token:
+    sessionToken,
+  expires_at:
+    expiresAt.toISOString(),
+  customer:
+    data
+});
 
 
     } catch (error) {
