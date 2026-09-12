@@ -33,13 +33,20 @@ async function hashPassword(password) {
   );
 
 }
+
 /*
 -----------------------------------------------------
 GENERATE CUSTOMER ACCOUNT NUMBER
 -----------------------------------------------------
 */
 function generateAccountNumber() {
-  const random = Math.floor(10000000 + Math.random() * 90000000);
+
+  const random =
+    Math.floor(
+      10000000 +
+      Math.random() * 90000000
+    );
+
   return `JCOB${random}`;
 }
 
@@ -53,181 +60,400 @@ router.post(
   "/api/customers/register",
   upload.single("kyc_file"),
   async (req, res) => {
-  try {
-    const {
-  full_name,
-  email,
-  phone,
-  password,
-  address,
-  id_number,
-  date_of_birth,
-  occupation,
-  employment_number,
-  residential_address,
-  next_of_kin,
-  next_of_kin_home_address,
-  next_of_kin_phone_number,
-  kyc_type,
-  kyc_number
-} = req.body;
 
-const kyc_file = req.file;
-      
+    try {
 
-    if (!full_name || !email || !phone || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Full name, email, phone and password are required"
-      });
-    }
-      if (!kyc_type) {
-  return res.status(400).json({
-    success: false,
-    message: "KYC document type is required"
-  });
-}
-
-if (!kyc_number) {
-  return res.status(400).json({
-    success: false,
-    message: "KYC document number is required"
-  });
-}
-
-if (!kyc_file) {
-  return res.status(400).json({
-    success: false,
-    message: "KYC document file is required"
-  });
-}
-
-    /*
-    Check whether email already exists
-    */
-    const { data: existingEmail, error: emailError } = await supabase
-      .from("customers")
-      .select("id")
-      .eq("email", email)
-      .maybeSingle();
-
-    if (emailError) {
-      return res.status(500).json({
-        success: false,
-        message: "Unable to check customer email",
-        error: emailError.message
-      });
-    }
-
-    if (existingEmail) {
-      return res.status(409).json({
-        success: false,
-        message: "A customer with this email already exists"
-      });
-    }
-
-    /*
-    Check whether phone already exists
-    */
-    const { data: existingPhone, error: phoneError } = await supabase
-      .from("customers")
-      .select("id")
-      .eq("phone", phone)
-      .maybeSingle();
-
-    if (phoneError) {
-      return res.status(500).json({
-        success: false,
-        message: "Unable to check customer phone",
-        error: phoneError.message
-      });
-    }
-
-    if (existingPhone) {
-      return res.status(409).json({
-        success: false,
-        message: "A customer with this phone number already exists"
-      });
-    }
-
-    const account_number = generateAccountNumber();
-    const hash_password =
-  await hashPassword(password);
-    const { data, error } = await supabase
-      .from("customers")
-      .insert([
-        {
-          full_name,
-          email,
-          phone,
-          hash_password,
-          balance: 0,
-          address: address || null,
-          id_number: id_number || null,
-          date_of_birth: date_of_birth || null,
-          occupation: occupation || null,
-          account_number,
-          employment_number: employment_number || null,
-          account_status: "active",
-          failed_attempts: 0,
-          locked_until: null,
-          role: "customer",
-          is_verified: false,
-          residential_address: residential_address || null,
-          next_of_kin: next_of_kin || null,
-          next_of_kin_home_address:
-            next_of_kin_home_address || null,
-          next_of_kin_phone_number:
-            next_of_kin_phone_number || null
-        }
-      ])
-      .select(
-        `
-        id,
+      const {
         full_name,
         email,
         phone,
-        balance,
+        password,
         address,
         id_number,
         date_of_birth,
         occupation,
-        account_number,
         employment_number,
-        account_status,
-        role,
-        is_verified,
         residential_address,
         next_of_kin,
         next_of_kin_home_address,
         next_of_kin_phone_number,
-        created_at,
-        updated_at
-        `
-      )
-      .single();
+        kyc_type,
+        kyc_number
+      } = req.body;
 
-    if (error) {
+      const kyc_file = req.file;
+
+
+      /*
+      -----------------------------------------------------
+      BASIC CUSTOMER VALIDATION
+      -----------------------------------------------------
+      */
+
+      if (
+        !full_name ||
+        !email ||
+        !phone ||
+        !password
+      ) {
+
+        return res.status(400).json({
+          success: false,
+          message:
+            "Full name, email, phone and password are required"
+        });
+
+      }
+
+
+      /*
+      -----------------------------------------------------
+      KYC VALIDATION
+      -----------------------------------------------------
+      */
+
+      if (!kyc_type) {
+
+        return res.status(400).json({
+          success: false,
+          message:
+            "KYC document type is required"
+        });
+
+      }
+
+
+      if (!kyc_number) {
+
+        return res.status(400).json({
+          success: false,
+          message:
+            "KYC document number is required"
+        });
+
+      }
+
+
+      if (!kyc_file) {
+
+        return res.status(400).json({
+          success: false,
+          message:
+            "KYC document file is required"
+        });
+
+      }
+
+
+      /*
+      -----------------------------------------------------
+      CHECK WHETHER EMAIL ALREADY EXISTS
+      -----------------------------------------------------
+      */
+
+      const {
+        data: existingEmail,
+        error: emailError
+      } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("email", email)
+        .maybeSingle();
+
+
+      if (emailError) {
+
+        return res.status(500).json({
+          success: false,
+          message:
+            "Unable to check customer email",
+          error:
+            emailError.message
+        });
+
+      }
+
+
+      if (existingEmail) {
+
+        return res.status(409).json({
+          success: false,
+          message:
+            "A customer with this email already exists"
+        });
+
+      }
+
+
+      /*
+      -----------------------------------------------------
+      CHECK WHETHER PHONE ALREADY EXISTS
+      -----------------------------------------------------
+      */
+
+      const {
+        data: existingPhone,
+        error: phoneError
+      } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("phone", phone)
+        .maybeSingle();
+
+
+      if (phoneError) {
+
+        return res.status(500).json({
+          success: false,
+          message:
+            "Unable to check customer phone",
+          error:
+            phoneError.message
+        });
+
+      }
+
+
+      if (existingPhone) {
+
+        return res.status(409).json({
+          success: false,
+          message:
+            "A customer with this phone number already exists"
+        });
+
+      }
+
+
+      /*
+      -----------------------------------------------------
+      CREATE CUSTOMER ACCOUNT
+      -----------------------------------------------------
+      */
+
+      const account_number =
+        generateAccountNumber();
+
+      const hash_password =
+        await hashPassword(password);
+
+
+      const {
+        data,
+        error
+      } = await supabase
+        .from("customers")
+        .insert([
+          {
+            full_name,
+            email,
+            phone,
+            hash_password,
+            balance: 0,
+            address:
+              address || null,
+            id_number:
+              id_number || null,
+            date_of_birth:
+              date_of_birth || null,
+            occupation:
+              occupation || null,
+            account_number,
+            employment_number:
+              employment_number || null,
+            account_status:
+              "active",
+            failed_attempts:
+              0,
+            locked_until:
+              null,
+            role:
+              "customer",
+            is_verified:
+              false,
+            residential_address:
+              residential_address || null,
+            next_of_kin:
+              next_of_kin || null,
+            next_of_kin_home_address:
+              next_of_kin_home_address || null,
+            next_of_kin_phone_number:
+              next_of_kin_phone_number || null
+          }
+        ])
+        .select(
+          `
+          id,
+          full_name,
+          email,
+          phone,
+          balance,
+          address,
+          id_number,
+          date_of_birth,
+          occupation,
+          account_number,
+          employment_number,
+          account_status,
+          role,
+          is_verified,
+          residential_address,
+          next_of_kin,
+          next_of_kin_home_address,
+          next_of_kin_phone_number,
+          created_at,
+          updated_at
+          `
+        )
+        .single();
+
+
+      if (error) {
+
+        return res.status(500).json({
+          success: false,
+          message:
+            "Customer registration failed",
+          error:
+            error.message
+        });
+
+      }
+
+
+      /*
+      -----------------------------------------------------
+      UPLOAD KYC DOCUMENT
+      -----------------------------------------------------
+      */
+
+      const fileExtension =
+        kyc_file.originalname.includes(".")
+          ? kyc_file.originalname
+              .split(".")
+              .pop()
+          : "bin";
+
+
+      const filePath =
+        `${data.id}/${Date.now()}-${crypto.randomUUID()}.${fileExtension}`;
+
+
+      const {
+        error: uploadError
+      } = await supabase.storage
+        .from("kyc-documents")
+        .upload(
+          filePath,
+          kyc_file.buffer,
+          {
+            contentType:
+              kyc_file.mimetype,
+            upsert:
+              false
+          }
+        );
+
+
+      if (uploadError) {
+
+        console.error(
+          "KYC upload error:",
+          uploadError
+        );
+
+        return res.status(500).json({
+          success: false,
+          message:
+            "Customer created, but KYC document upload failed",
+          error:
+            uploadError.message
+        });
+
+      }
+
+
+      /*
+      -----------------------------------------------------
+      CREATE KYC RECORD
+      -----------------------------------------------------
+      */
+
+      const {
+        error: kycError
+      } = await supabase
+        .from("KYC")
+        .insert([
+          {
+            customer_id:
+              data.id,
+
+            document_type:
+              kyc_type,
+
+            document_number:
+              kyc_number,
+
+            document_url:
+              filePath,
+
+            status:
+              "PENDING",
+
+            submitted_at:
+              new Date().toISOString()
+          }
+        ]);
+
+
+      if (kycError) {
+
+        console.error(
+          "KYC database error:",
+          kycError
+        );
+
+        return res.status(500).json({
+          success: false,
+          message:
+            "Customer created, but KYC record could not be saved",
+          error:
+            kycError.message
+        });
+
+      }
+
+
+      /*
+      -----------------------------------------------------
+      CUSTOMER + KYC CREATED SUCCESSFULLY
+      -----------------------------------------------------
+      */
+
+      return res.status(201).json({
+        success: true,
+        message:
+          "Customer registered successfully",
+        customer:
+          data
+      });
+
+
+    } catch (error) {
+
       return res.status(500).json({
         success: false,
-        message: "Customer registration failed",
-        error: error.message
+        message:
+          "Server error",
+        error:
+          error.message
       });
+
     }
 
-    return res.status(201).json({
-      success: true,
-      message: "Customer registered successfully",
-      customer: data
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message
-    });
   }
-});
+);
+
 
 /*
 -----------------------------------------------------
@@ -235,43 +461,72 @@ GET CUSTOMER BY ID
 GET /api/customers/:id
 -----------------------------------------------------
 */
-router.get("/api/customers/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
+router.get(
+  "/api/customers/:id",
+  async (req, res) => {
 
-    const { data, error } = await supabase
-      .from("customers")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle();
+    try {
 
-    if (error) {
+      const { id } =
+        req.params;
+
+
+      const {
+        data,
+        error
+      } = await supabase
+        .from("customers")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+
+
+      if (error) {
+
+        return res.status(500).json({
+          success: false,
+          message:
+            "Failed to retrieve customer",
+          error:
+            error.message
+        });
+
+      }
+
+
+      if (!data) {
+
+        return res.status(404).json({
+          success: false,
+          message:
+            "Customer not found"
+        });
+
+      }
+
+
+      return res.json({
+        success: true,
+        customer:
+          data
+      });
+
+
+    } catch (error) {
+
       return res.status(500).json({
         success: false,
-        message: "Failed to retrieve customer",
-        error: error.message
+        message:
+          "Server error",
+        error:
+          error.message
       });
+
     }
 
-    if (!data) {
-      return res.status(404).json({
-        success: false,
-        message: "Customer not found"
-      });
-    }
-
-    return res.json({
-      success: true,
-      customer: data
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message
-    });
   }
-});
+);
+
 
 /*
 -----------------------------------------------------
@@ -282,43 +537,73 @@ GET /api/customers/account/:accountNumber
 router.get(
   "/api/customers/account/:accountNumber",
   async (req, res) => {
-    try {
-      const { accountNumber } = req.params;
 
-      const { data, error } = await supabase
+    try {
+
+      const {
+        accountNumber
+      } = req.params;
+
+
+      const {
+        data,
+        error
+      } = await supabase
         .from("customers")
         .select("*")
-        .eq("account_number", accountNumber)
+        .eq(
+          "account_number",
+          accountNumber
+        )
         .maybeSingle();
 
+
       if (error) {
+
         return res.status(500).json({
           success: false,
-          message: "Failed to retrieve customer",
-          error: error.message
+          message:
+            "Failed to retrieve customer",
+          error:
+            error.message
         });
+
       }
 
+
       if (!data) {
+
         return res.status(404).json({
           success: false,
-          message: "Customer not found"
+          message:
+            "Customer not found"
         });
+
       }
+
 
       return res.json({
         success: true,
-        customer: data
+        customer:
+          data
       });
+
+
     } catch (error) {
+
       return res.status(500).json({
         success: false,
-        message: "Server error",
-        error: error.message
+        message:
+          "Server error",
+        error:
+          error.message
       });
+
     }
+
   }
 );
+
 
 /*
 -----------------------------------------------------
@@ -326,62 +611,104 @@ UPDATE CUSTOMER PROFILE
 PUT /api/customers/:id
 -----------------------------------------------------
 */
-router.put("/api/customers/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
+router.put(
+  "/api/customers/:id",
+  async (req, res) => {
 
-    const allowedFields = [
-      "full_name",
-      "phone",
-      "address",
-      "id_number",
-      "date_of_birth",
-      "occupation",
-      "employment_number",
-      "residential_address",
-      "next_of_kin",
-      "next_of_kin_home_address",
-      "next_of_kin_phone_number"
-    ];
+    try {
 
-    const updates = {};
+      const { id } =
+        req.params;
 
-    for (const field of allowedFields) {
-      if (req.body[field] !== undefined) {
-        updates[field] = req.body[field];
+
+      const allowedFields = [
+        "full_name",
+        "phone",
+        "address",
+        "id_number",
+        "date_of_birth",
+        "occupation",
+        "employment_number",
+        "residential_address",
+        "next_of_kin",
+        "next_of_kin_home_address",
+        "next_of_kin_phone_number"
+      ];
+
+
+      const updates = {};
+
+
+      for (
+        const field
+        of allowedFields
+      ) {
+
+        if (
+          req.body[field] !==
+          undefined
+        ) {
+
+          updates[field] =
+            req.body[field];
+
+        }
+
       }
-    }
 
-    updates.updated_at = new Date().toISOString();
 
-    const { data, error } = await supabase
-      .from("customers")
-      .update(updates)
-      .eq("id", id)
-      .select("*")
-      .single();
+      updates.updated_at =
+        new Date().toISOString();
 
-    if (error) {
+
+      const {
+        data,
+        error
+      } = await supabase
+        .from("customers")
+        .update(updates)
+        .eq("id", id)
+        .select("*")
+        .single();
+
+
+      if (error) {
+
+        return res.status(500).json({
+          success: false,
+          message:
+            "Customer update failed",
+          error:
+            error.message
+        });
+
+      }
+
+
+      return res.json({
+        success: true,
+        message:
+          "Customer profile updated successfully",
+        customer:
+          data
+      });
+
+
+    } catch (error) {
+
       return res.status(500).json({
         success: false,
-        message: "Customer update failed",
-        error: error.message
+        message:
+          "Server error",
+        error:
+          error.message
       });
+
     }
 
-    return res.json({
-      success: true,
-      message: "Customer profile updated successfully",
-      customer: data
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message
-    });
   }
-});
+);
+
 
 /*
 -----------------------------------------------------
@@ -389,62 +716,90 @@ ADMIN: GET ALL CUSTOMERS
 GET /api/customers
 -----------------------------------------------------
 */
-router.get("/api/customers", async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from("customers")
-      .select(
-        `
-        id,
-        full_name,
-        email,
-        phone,
-        balance,
-        address,
-        id_number,
-        date_of_birth,
-        occupation,
-        account_number,
-        employment_number,
-        account_status,
-        failed_attempts,
-        locked_until,
-        role,
-        is_verified,
-        residential_address,
-        next_of_kin,
-        next_of_kin_home_address,
-        next_of_kin_phone_number,
-        auth_user_id,
-        created_at,
-        updated_at
-        `
-      )
-      .order("created_at", {
-        ascending: false
+router.get(
+  "/api/customers",
+  async (req, res) => {
+
+    try {
+
+      const {
+        data,
+        error
+      } = await supabase
+        .from("customers")
+        .select(
+          `
+          id,
+          full_name,
+          email,
+          phone,
+          balance,
+          address,
+          id_number,
+          date_of_birth,
+          occupation,
+          account_number,
+          employment_number,
+          account_status,
+          failed_attempts,
+          locked_until,
+          role,
+          is_verified,
+          residential_address,
+          next_of_kin,
+          next_of_kin_home_address,
+          next_of_kin_phone_number,
+          auth_user_id,
+          created_at,
+          updated_at
+          `
+        )
+        .order(
+          "created_at",
+          {
+            ascending:
+              false
+          }
+        );
+
+
+      if (error) {
+
+        return res.status(500).json({
+          success: false,
+          message:
+            "Failed to retrieve customers",
+          error:
+            error.message
+        });
+
+      }
+
+
+      return res.json({
+        success: true,
+        count:
+          data.length,
+        customers:
+          data
       });
 
-    if (error) {
+
+    } catch (error) {
+
       return res.status(500).json({
         success: false,
-        message: "Failed to retrieve customers",
-        error: error.message
+        message:
+          "Server error",
+        error:
+          error.message
       });
+
     }
 
-    return res.json({
-      success: true,
-      count: data.length,
-      customers: data
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message
-    });
   }
-});
+);
+
 
 /*
 -----------------------------------------------------
@@ -452,111 +807,58 @@ DELETE CUSTOMER
 DELETE /api/customers/:id
 -----------------------------------------------------
 */
-router.delete("/api/customers/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
+router.delete(
+  "/api/customers/:id",
+  async (req, res) => {
 
-    const { error } = await supabase
-      .from("customers")
-      .delete()
-      .eq("id", id);
+    try {
 
-    if (error) {
+      const { id } =
+        req.params;
+
+
+      const {
+        error
+      } = await supabase
+        .from("customers")
+        .delete()
+        .eq("id", id);
+
+
+      if (error) {
+
+        return res.status(500).json({
+          success: false,
+          message:
+            "Customer deletion failed",
+          error:
+            error.message
+        });
+
+      }
+
+
+      return res.json({
+        success: true,
+        message:
+          "Customer deleted successfully"
+      });
+
+
+    } catch (error) {
+
       return res.status(500).json({
         success: false,
-        message: "Customer deletion failed",
-        error: error.message
+        message:
+          "Server error",
+        error:
+          error.message
       });
+
     }
 
-    return res.json({
-      success: true,
-      message: "Customer deleted successfully"
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message
-    });
   }
-});
+);
 
-    /*
-    -----------------------------------------------------
-    UPLOAD KYC DOCUMENT
-    -----------------------------------------------------
-    */
-
-    const fileExtension =
-      kyc_file.originalname.includes(".")
-        ? kyc_file.originalname.split(".").pop()
-        : "bin";
-
-    const filePath =
-      `${data.id}/${Date.now()}-${crypto.randomUUID()}.${fileExtension}`;
-
-    const { error: uploadError } =
-      await supabase.storage
-        .from("kyc-documents")
-        .upload(
-          filePath,
-          kyc_file.buffer,
-          {
-            contentType: kyc_file.mimetype,
-            upsert: false
-          }
-        );
-
-    if (uploadError) {
-
-      console.error(
-        "KYC upload error:",
-        uploadError
-      );
-
-      return res.status(500).json({
-        success: false,
-        message: "Customer created, but KYC document upload failed",
-        error: uploadError.message
-      });
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    CREATE KYC RECORD
-    -----------------------------------------------------
-    */
-
-    const { error: kycError } =
-      await supabase
-        .from("KYC")
-        .insert([
-          {
-            customer_id: data.id,
-            document_type: kyc_type,
-            document_number: kyc_number,
-            document_url: filePath,
-            status: "PENDING",
-            submitted_at: new Date().toISOString()
-          }
-        ]);
-
-    if (kycError) {
-
-      console.error(
-        "KYC database error:",
-        kycError
-      );
-
-      return res.status(500).json({
-        success: false,
-        message: "Customer created, but KYC record could not be saved",
-        error: kycError.message
-      });
-
-    }
 
 export default router;
