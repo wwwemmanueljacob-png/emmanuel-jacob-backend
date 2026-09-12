@@ -2055,7 +2055,7 @@ app.get(
         ),
 
         fetchAllRows(
-          "schedules",
+          "loan_schedules",
           "id,created_at,loan_id,customer_id,installment_number,due_date,amount_due,amount_paid,remaining_amount,status,paid_date"
         ),
 
