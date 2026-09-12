@@ -1,9 +1,17 @@
 import bcrypt from "bcryptjs";
 import express from "express";
+import multer from "multer";
 import crypto from "crypto";
 import { supabase } from "../lib/supabase.js";
 
 const router = express.Router();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024
+  }
+});
 
 /*
 =====================================================
@@ -41,23 +49,31 @@ CREATE CUSTOMER
 POST /api/customers/register
 -----------------------------------------------------
 */
-router.post("/api/customers/register", async (req, res) => {
+router.post(
+  "/api/customers/register",
+  upload.single("kyc_file"),
+  async (req, res) => {
   try {
     const {
-      full_name,
-      email,
-      phone,
-      password,
-      address,
-      id_number,
-      date_of_birth,
-      occupation,
-      employment_number,
-      residential_address,
-      next_of_kin,
-      next_of_kin_home_address,
-      next_of_kin_phone_number
-    } = req.body;
+  full_name,
+  email,
+  phone,
+  password,
+  address,
+  id_number,
+  date_of_birth,
+  occupation,
+  employment_number,
+  residential_address,
+  next_of_kin,
+  next_of_kin_home_address,
+  next_of_kin_phone_number,
+  kyc_type,
+  kyc_number
+} = req.body;
+
+const kyc_file = req.file;
+      
 
     if (!full_name || !email || !phone || !password) {
       return res.status(400).json({
@@ -65,6 +81,26 @@ router.post("/api/customers/register", async (req, res) => {
         message: "Full name, email, phone and password are required"
       });
     }
+      if (!kyc_type) {
+  return res.status(400).json({
+    success: false,
+    message: "KYC document type is required"
+  });
+}
+
+if (!kyc_number) {
+  return res.status(400).json({
+    success: false,
+    message: "KYC document number is required"
+  });
+}
+
+if (!kyc_file) {
+  return res.status(400).json({
+    success: false,
+    message: "KYC document file is required"
+  });
+}
 
     /*
     Check whether email already exists
