@@ -2,6 +2,7 @@ import express from "express";
 import { supabase } from "../lib/supabase.js";
 
 const router = express.Router();
+console.log("ADMIN KYC ROUTER LOADED");
 
 /* =========================================
    GET ALL KYC DOCUMENTS
