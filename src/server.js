@@ -23,6 +23,7 @@ import adminStatementsRouter from "./routes/AdminStatements.js";
 import adminKYCRouter from "./routes/AdminKYC.js";
 import customerKYCRouter from "./routes/CustomerKYC.js";
 import repaymentsRouter from "./routes/repayments.js";
+import adminSchedulesRouter from "./routes/AdminSchedules.js";
 
 dotenv.config();
 
@@ -69,8 +70,9 @@ app.use("/api/admin/deposits", authenticateAdmin, adminDepositsRouter);
 app.use("/api/admin/active-loans",authenticateAdmin, adminActiveLoansRouter);
 app.use("/api/admin/statements",authenticateAdmin, adminStatementsRouter);
 app.use("/api/admin/kyc",authenticateAdmin, adminKYCRouter);
-app.use( "/api/kyc", customerKYCRouter);
+app.use("/api/kyc", customerKYCRouter);
 app.use(repaymentsRouter);
+app.use("/api/admin/schedules",authenticateAdmin, adminSchedulesRouter);
 
 /* =========================================
    ADMIN CONFIGURATION
