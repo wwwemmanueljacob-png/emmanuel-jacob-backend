@@ -385,7 +385,7 @@ router.post(
       const {
         error: kycError
       } = await supabase
-        .from("KYC")
+        .from("kyc")
         .insert([
           {
             customer_id:
