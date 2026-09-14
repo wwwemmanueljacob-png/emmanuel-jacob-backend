@@ -23,6 +23,7 @@ import adminStatementsRouter from "./routes/AdminStatements.js";
 import adminKYCRouter from "./routes/AdminKYC.js";
 import customerKYCRouter from "./routes/CustomerKYC.js";
 import repaymentsRouter from "./routes/repayments.js";
+import withdrawalsRouter from "./routes/withdrawals.js";
 import adminSchedulesRouter from "./routes/AdminSchedules.js";
 
 dotenv.config();
