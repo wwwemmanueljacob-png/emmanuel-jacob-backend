@@ -2919,9 +2919,20 @@ app.get(
           "id,created_at,customer_id,amount,transaction_type,status,balance_after"
         ),
 
-        fetchAllRows(
+                fetchAllRows(
           "interest_records",
           "id,created_at,loan_id,customer_id,interest_amount,status"
+        ).catch(
+          error => {
+
+            console.error(
+              "ADMIN STATISTICS INTEREST ERROR:",
+              error
+            );
+
+            return [];
+
+          }
         )
 
       ]);
