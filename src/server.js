@@ -3892,6 +3892,8 @@ app.get(
 
           completedWithdrawalAmount,
 
+          pendingWithdrawals,
+
           totalTransfers,
 
           totalTransferAmount,
