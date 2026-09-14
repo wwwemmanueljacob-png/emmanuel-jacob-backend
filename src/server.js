@@ -64,15 +64,55 @@ app.use(statementsRouter);
 app.use(kycRouter);
 app.use(supportRouter);
 
-app.use("/api/admin/fees", authenticateAdmin, adminFeesRouter);
-app.use("/api/admin/savings", authenticateAdmin, adminSavingsRouter);
-app.use("/api/admin/deposits", authenticateAdmin, adminDepositsRouter);
-app.use("/api/admin/active-loans",authenticateAdmin, adminActiveLoansRouter);
-app.use("/api/admin/statements",authenticateAdmin, adminStatementsRouter);
-app.use("/api/admin/kyc",authenticateAdmin, adminKYCRouter);
-app.use("/api/kyc", customerKYCRouter);
+app.use(
+  "/api/admin/fees",
+  authenticateAdmin,
+  adminFeesRouter
+);
+
+app.use(
+  "/api/admin/savings",
+  authenticateAdmin,
+  adminSavingsRouter
+);
+
+app.use(
+  "/api/admin/deposits",
+  authenticateAdmin,
+  adminDepositsRouter
+);
+
+app.use(
+  "/api/admin/active-loans",
+  authenticateAdmin,
+  adminActiveLoansRouter
+);
+
+app.use(
+  "/api/admin/statements",
+  authenticateAdmin,
+  adminStatementsRouter
+);
+
+app.use(
+  "/api/admin/kyc",
+  authenticateAdmin,
+  adminKYCRouter
+);
+
+app.use(
+  "/api/kyc",
+  customerKYCRouter
+);
+
 app.use(repaymentsRouter);
-app.use("/api/admin/schedules",authenticateAdmin, adminSchedulesRouter);
+
+app.use(
+  "/api/admin/schedules",
+  authenticateAdmin,
+  adminSchedulesRouter
+);
+
 
 /* =========================================
    ADMIN CONFIGURATION
@@ -89,6 +129,7 @@ const ADMIN_PASSWORD =
   "admin123456";
 
 let recoveredAdminPassword = null;
+
 
 /* =========================================
    TEMPORARY DATABASE
@@ -177,6 +218,48 @@ function addAuditLog(
   auditLogs.unshift(log);
 
   return log;
+
+}
+
+
+/* =========================================
+   ADD MONTHS SAFELY
+   Prevents dates such as January 31
+   jumping over the intended month.
+========================================= */
+
+function addMonths(
+  date,
+  months
+) {
+
+  const result =
+    new Date(date);
+
+  const originalDay =
+    result.getDate();
+
+  result.setDate(1);
+
+  result.setMonth(
+    result.getMonth() + months
+  );
+
+  const lastDayOfMonth =
+    new Date(
+      result.getFullYear(),
+      result.getMonth() + 1,
+      0
+    ).getDate();
+
+  result.setDate(
+    Math.min(
+      originalDay,
+      lastDayOfMonth
+    )
+  );
+
+  return result;
 
 }
 
@@ -510,6 +593,7 @@ async function authenticateAdmin(
 
 }
 
+
 /* =========================================
    ADMIN PROFILE
 ========================================= */
@@ -588,21 +672,24 @@ app.get(
    HOME
 ========================================= */
 
-app.get("/", (req, res) => {
+app.get(
+  "/",
+  (req, res) => {
 
-  res.json({
+    res.json({
 
-    success: true,
+      success: true,
 
-    message:
-      "JAY C O B FINANCIAL SERVICES Backend is running",
+      message:
+        "JAY C O B FINANCIAL SERVICES Backend is running",
 
-    version:
-      "3.0.0"
+      version:
+        "3.0.0"
 
-  });
+    });
 
-});
+  }
+);
 
 
 /* =========================================
@@ -1129,9 +1216,9 @@ app.post(
       ===================================== */
 
       if (
-  password !==
-  (recoveredAdminPassword || ADMIN_PASSWORD)
-) {
+        password !==
+        (recoveredAdminPassword || ADMIN_PASSWORD)
+      ) {
 
         return res.status(401).json({
 
@@ -1193,89 +1280,90 @@ app.post(
 
 
       /* =====================================
-   SAVE ADMIN SESSION TO SUPABASE
-===================================== */
+         SAVE ADMIN SESSION TO SUPABASE
+      ===================================== */
 
-const now =
-  new Date();
+      const now =
+        new Date();
 
-const expiresAt =
-  new Date(
-    now.getTime() +
-    (24 * 60 * 60 * 1000)
-  );
+      const expiresAt =
+        new Date(
+          now.getTime() +
+          (24 * 60 * 60 * 1000)
+        );
 
-const ipAddress =
-  req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
-  req.socket?.remoteAddress ||
-  "";
+      const ipAddress =
+        req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+        req.socket?.remoteAddress ||
+        "";
 
-const userAgent =
-  req.headers["user-agent"] ||
-  "";
+      const userAgent =
+        req.headers["user-agent"] ||
+        "";
 
-const deviceInfo =
-  userAgent;
-
-
-const {
-  error: sessionError
-} = await supabase
-  .from("admin_sessions")
-  .insert({
-
-    admin_id:
-      adminRecord.id,
-
-    session_token:
-      token,
-
-    ip_address:
-      ipAddress,
-
-    user_agent:
-      userAgent,
-
-    device_info:
-      deviceInfo,
-
-    expires_at:
-      expiresAt.toISOString(),
-
-    last_activity:
-      now.toISOString(),
-
-    is_active:
-      true
-
-  });
+      const deviceInfo =
+        userAgent;
 
 
-if(sessionError){
+      const {
+        error: sessionError
+      } = await supabase
+        .from("admin_sessions")
+        .insert({
 
-  console.error(
-    "ADMIN SESSION SAVE ERROR:",
-    sessionError
-  );
+          admin_id:
+            adminRecord.id,
 
-  adminSessions.delete(
-    token
-  );
+          session_token:
+            token,
 
-  return res.status(500).json({
+          ip_address:
+            ipAddress,
 
-    success: false,
+          user_agent:
+            userAgent,
 
-    message:
-      "Administrator session could not be created.",
+          device_info:
+            deviceInfo,
 
-    error:
-      sessionError.message
+          expires_at:
+            expiresAt.toISOString(),
 
-  });
+          last_activity:
+            now.toISOString(),
 
-}
-      
+          is_active:
+            true
+
+        });
+
+
+      if (sessionError) {
+
+        console.error(
+          "ADMIN SESSION SAVE ERROR:",
+          sessionError
+        );
+
+        adminSessions.delete(
+          token
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Administrator session could not be created.",
+
+          error:
+            sessionError.message
+
+        });
+
+      }
+
+
       /* =====================================
          UPDATE LAST LOGIN
       ===================================== */
@@ -1348,6 +1436,7 @@ if(sessionError){
   }
 );
 
+
 /* =========================================
    ADMIN LOGOUT
 ========================================= */
@@ -1360,10 +1449,6 @@ app.post(
   async (req, res) => {
 
     try {
-
-      /* =====================================
-         MARK SUPABASE SESSION AS LOGGED OUT
-      ===================================== */
 
       const { error } =
         await supabase
@@ -1396,18 +1481,10 @@ app.post(
       }
 
 
-      /* =====================================
-         REMOVE MEMORY SESSION
-      ===================================== */
-
       adminSessions.delete(
         req.adminToken
       );
 
-
-      /* =====================================
-         AUDIT LOG
-      ===================================== */
 
       addAuditLog(
         req.admin.email,
@@ -1667,38 +1744,85 @@ app.get(
 
   authenticateAdmin,
 
-  (req, res) => {
+  async (req, res) => {
 
-    const application =
-      applications.find(
+    try {
 
-        application =>
-
-          application.id ===
+      const {
+        data,
+        error
+      } = await supabase
+        .from("loan_applications")
+        .select("*")
+        .eq(
+          "id",
           req.params.id
+        )
+        .maybeSingle();
 
+      if (error) {
+
+        console.error(
+          "GET SINGLE ADMIN APPLICATION ERROR:",
+          error
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to load loan application.",
+
+          error:
+            error.message
+
+        });
+
+      }
+
+      if (!data) {
+
+        return res.status(404).json({
+
+          success: false,
+
+          message:
+            "Loan application not found."
+
+        });
+
+      }
+
+      return res.json({
+
+        success: true,
+
+        application:
+          data
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "GET SINGLE ADMIN APPLICATION SERVER ERROR:",
+        error
       );
 
-    if (!application) {
-
-      return res.status(404).json({
+      return res.status(500).json({
 
         success: false,
 
         message:
-          "Loan application not found."
+          "Loan application could not be loaded.",
+
+        error:
+          error.message
 
       });
 
     }
-
-    res.json({
-
-      success: true,
-
-      application
-
-    });
 
   }
 );
@@ -1706,9 +1830,17 @@ app.get(
 
 /* =========================================
    UPDATE LOAN APPLICATION STATUS
+
    REAL SUPABASE DATA
-   + AUTOMATIC LOAN CREATION
-   + AUTOMATIC REPAYMENT SCHEDULE
+
+   APPROVED:
+   1. Calculate flat monthly interest
+   2. Create loans record
+   3. Create loan_schedules records
+   4. Mark application APPROVED
+
+   REJECTED / OTHER:
+   Update application only
 ========================================= */
 
 app.put(
@@ -1726,6 +1858,11 @@ app.put(
         notes
       } = req.body;
 
+
+      /* =====================================
+         VALIDATE STATUS
+      ===================================== */
+
       const allowedStatuses = [
         "PENDING",
         "UNDER REVIEW",
@@ -1736,9 +1873,12 @@ app.put(
       if (!status) {
 
         return res.status(400).json({
+
           success: false,
+
           message:
             "Loan status is required."
+
         });
 
       }
@@ -1755,12 +1895,20 @@ app.put(
       ) {
 
         return res.status(400).json({
+
           success: false,
+
           message:
             "Invalid loan status."
+
         });
 
       }
+
+
+      /* =====================================
+         REJECTION REASON
+      ===================================== */
 
       if (
         normalizedStatus === "REJECTED" &&
@@ -1770,16 +1918,19 @@ app.put(
       ) {
 
         return res.status(400).json({
+
           success: false,
+
           message:
             "A rejection reason is required when rejecting an application."
+
         });
 
       }
 
 
       /* =====================================
-         FIND APPLICATION
+         FIND APPLICATION IN SUPABASE
       ===================================== */
 
       const {
@@ -1802,11 +1953,15 @@ app.put(
         );
 
         return res.status(500).json({
+
           success: false,
+
           message:
             "Unable to find the loan application.",
+
           error:
             findError.message
+
         });
 
       }
@@ -1814,9 +1969,12 @@ app.put(
       if (!existingApplication) {
 
         return res.status(404).json({
+
           success: false,
+
           message:
             "Loan application not found."
+
         });
 
       }
@@ -1827,7 +1985,7 @@ app.put(
 
 
       /* =====================================
-         HANDLE REJECTION / OTHER STATUS
+         NON-APPROVAL STATUS
       ===================================== */
 
       if (
@@ -1847,6 +2005,7 @@ app.put(
 
         };
 
+
         if (
           normalizedStatus === "REJECTED"
         ) {
@@ -1863,6 +2022,7 @@ app.put(
 
         }
 
+
         if (
           notes !== undefined
         ) {
@@ -1872,18 +2032,22 @@ app.put(
 
         }
 
+
         const {
           data: updatedApplication,
           error: updateError
         } = await supabase
           .from("loan_applications")
-          .update(updateData)
+          .update(
+            updateData
+          )
           .eq(
             "id",
             req.params.id
           )
           .select()
           .single();
+
 
         if (updateError) {
 
@@ -1893,37 +2057,44 @@ app.put(
           );
 
           return res.status(500).json({
+
             success: false,
+
             message:
               "Unable to update loan application status.",
+
             error:
               updateError.message
+
           });
 
         }
 
 
-        /* =====================================
-           AUDIT LOG
-        ===================================== */
-
         addAuditLog(
+
           req.admin.email,
+
           "Loan application " +
           req.params.id +
           " changed from " +
           oldStatus +
           " to " +
           normalizedStatus
+
         );
 
 
         return res.json({
+
           success: true,
+
           message:
             "Loan application status updated successfully.",
+
           application:
             updatedApplication
+
         });
 
       }
@@ -1946,19 +2117,20 @@ app.put(
 
       /*
        * Use the application's interest rate.
-       * If no rate was stored on the application,
-       * use the system's existing 10% default.
+       *
+       * If no valid rate exists, use 10%.
        */
+
+      const storedInterestRate =
+        Number(
+          existingApplication.interest_rate
+        );
 
       const interestRate =
         Number.isFinite(
-          Number(
-            existingApplication.interest_rate
-          )
+          storedInterestRate
         )
-          ? Number(
-              existingApplication.interest_rate
-            )
+          ? storedInterestRate
           : 10;
 
 
@@ -1968,12 +2140,16 @@ app.put(
       ) {
 
         return res.status(400).json({
+
           success: false,
+
           message:
             "Invalid loan amount."
+
         });
 
       }
+
 
       if (
         !Number.isFinite(duration) ||
@@ -1982,12 +2158,16 @@ app.put(
       ) {
 
         return res.status(400).json({
+
           success: false,
+
           message:
             "Invalid loan duration."
+
         });
 
       }
+
 
       if (
         !Number.isFinite(interestRate) ||
@@ -1995,16 +2175,25 @@ app.put(
       ) {
 
         return res.status(400).json({
+
           success: false,
+
           message:
             "Invalid interest rate."
+
         });
 
       }
 
 
       /* =====================================
-         FLAT MONTHLY INTEREST CALCULATION
+         FLAT MONTHLY INTEREST
+         
+         Total Interest =
+         Principal × Rate × Months
+
+         Total Amount =
+         Principal + Total Interest
       ===================================== */
 
       const totalInterest =
@@ -2016,8 +2205,15 @@ app.put(
         principal +
         totalInterest;
 
+
+      const roundedTotalAmount =
+        Number(
+          totalAmount.toFixed(2)
+        );
+
+
       const monthlyInstallment =
-        totalAmount /
+        roundedTotalAmount /
         duration;
 
 
@@ -2030,22 +2226,23 @@ app.put(
 
 
       /* =====================================
-         FINAL LOAN DUE DATE
+         FINAL DUE DATE
       ===================================== */
 
       const finalDueDate =
-        new Date(
-          approvalDate
+        addMonths(
+          approvalDate,
+          duration
         );
-
-      finalDueDate.setMonth(
-        finalDueDate.getMonth() +
-        duration
-      );
 
 
       /* =====================================
-         CHECK WHETHER LOAN ALREADY EXISTS
+         CHECK FOR EXISTING LOAN
+         
+         Because the loans table does not have
+         application_id, we identify the loan
+         using customer + application date +
+         loan amount.
       ===================================== */
 
       const {
@@ -2058,17 +2255,30 @@ app.put(
           customer_id,
           loan_amount,
           loan_status,
-          application_date
+          application_date,
+          interest_rate,
+          total_amount,
+          amount_paid,
+          remaining_balance,
+          approval_date,
+          due_date,
+          approved_by,
+          purpose
         `)
         .eq(
           "customer_id",
           existingApplication.customer_id
         )
         .eq(
+          "loan_amount",
+          principal
+        )
+        .eq(
           "application_date",
           existingApplication.created_at
         )
         .limit(1);
+
 
       if (existingLoanError) {
 
@@ -2078,11 +2288,15 @@ app.put(
         );
 
         return res.status(500).json({
+
           success: false,
+
           message:
             "Unable to check whether the loan already exists.",
+
           error:
             existingLoanError.message
+
         });
 
       }
@@ -2118,17 +2332,13 @@ app.put(
               interestRate,
 
             total_amount:
-              Number(
-                totalAmount.toFixed(2)
-              ),
+              roundedTotalAmount,
 
             amount_paid:
               0,
 
             remaining_balance:
-              Number(
-                totalAmount.toFixed(2)
-              ),
+              roundedTotalAmount,
 
             loan_status:
               "APPROVED",
@@ -2153,6 +2363,7 @@ app.put(
           .select()
           .single();
 
+
         if (loanError) {
 
           console.error(
@@ -2161,24 +2372,24 @@ app.put(
           );
 
           return res.status(500).json({
+
             success: false,
+
             message:
-              "Loan application was not approved because the loan record could not be created.",
+              "Loan application could not be approved because the loan record could not be created.",
+
             error:
               loanError.message
+
           });
 
         }
+
 
         loan =
           newLoan;
 
       } else {
-
-        /*
-         * The loan already exists.
-         * Do not create another loan record.
-         */
 
         console.log(
           "Loan already exists:",
@@ -2189,7 +2400,7 @@ app.put(
 
 
       /* =====================================
-         CHECK EXISTING REPAYMENT SCHEDULE
+         CHECK EXISTING SCHEDULES
       ===================================== */
 
       const {
@@ -2197,11 +2408,22 @@ app.put(
         error: scheduleCheckError
       } = await supabase
         .from("loan_schedules")
-        .select("id")
+        .select(`
+          id,
+          installment_number,
+          amount_due
+        `)
         .eq(
           "loan_id",
           loan.id
+        )
+        .order(
+          "installment_number",
+          {
+            ascending: true
+          }
         );
+
 
       if (scheduleCheckError) {
 
@@ -2211,11 +2433,18 @@ app.put(
         );
 
         return res.status(500).json({
+
           success: false,
+
           message:
             "Loan was created, but repayment schedules could not be checked.",
+
           error:
-            scheduleCheckError.message
+            scheduleCheckError.message,
+
+          loan_id:
+            loan.id
+
         });
 
       }
@@ -2232,6 +2461,10 @@ app.put(
 
         const schedules = [];
 
+        let scheduledBeforeFinal =
+          0;
+
+
         for (
           let installmentNumber = 1;
           installmentNumber <= duration;
@@ -2239,36 +2472,40 @@ app.put(
         ) {
 
           const dueDate =
-            new Date(
-              approvalDate
+            addMonths(
+              approvalDate,
+              installmentNumber
             );
 
-          dueDate.setMonth(
-            dueDate.getMonth() +
-            installmentNumber
-          );
+
+          let amountDue;
 
 
-          /*
-           * Keep normal installments equal.
-           * Adjust the final installment so that
-           * the total of all schedules exactly
-           * matches total_amount.
-           */
-
-          let amountDue =
-            monthlyInstallment;
+          /* =================================
+             FINAL INSTALLMENT
+             
+             Adjust final amount so the total
+             schedules exactly equal the loan
+             total amount.
+          ================================= */
 
           if (
             installmentNumber === duration
           ) {
 
             amountDue =
-              totalAmount -
-              (
-                monthlyInstallment *
-                (duration - 1)
+              roundedTotalAmount -
+              scheduledBeforeFinal;
+
+          } else {
+
+            amountDue =
+              Number(
+                monthlyInstallment.toFixed(2)
               );
+
+            scheduledBeforeFinal +=
+              amountDue;
 
           }
 
@@ -2321,6 +2558,7 @@ app.put(
             schedules
           );
 
+
         if (scheduleInsertError) {
 
           console.error(
@@ -2329,13 +2567,18 @@ app.put(
           );
 
           return res.status(500).json({
+
             success: false,
+
             message:
               "Loan was created, but repayment schedules could not be created.",
+
             error:
               scheduleInsertError.message,
+
             loan_id:
               loan.id
+
           });
 
         }
@@ -2370,6 +2613,7 @@ app.put(
 
       };
 
+
       if (
         notes !== undefined
       ) {
@@ -2378,6 +2622,7 @@ app.put(
           notes;
 
       }
+
 
       const {
         data: updatedApplication,
@@ -2394,6 +2639,7 @@ app.put(
         .select()
         .single();
 
+
       if (applicationUpdateError) {
 
         console.error(
@@ -2402,13 +2648,18 @@ app.put(
         );
 
         return res.status(500).json({
+
           success: false,
+
           message:
-            "Loan and schedules were created, but the application status could not be updated.",
+            "Loan and repayment schedules were created, but the application status could not be updated.",
+
           error:
             applicationUpdateError.message,
+
           loan_id:
             loan.id
+
         });
 
       }
@@ -2419,7 +2670,9 @@ app.put(
       ===================================== */
 
       addAuditLog(
+
         req.admin.email,
+
         "Loan application " +
         req.params.id +
         " changed from " +
@@ -2427,6 +2680,7 @@ app.put(
         " to APPROVED. Loan ID: " +
         loan.id +
         ". Repayment schedule created."
+
       );
 
 
@@ -2462,9 +2716,7 @@ app.put(
             ),
 
           total_amount:
-            Number(
-              totalAmount.toFixed(2)
-            ),
+            roundedTotalAmount,
 
           monthly_installment:
             Number(
@@ -2500,190 +2752,6 @@ app.put(
   }
 );
 
-      /* =====================================
-         FIND APPLICATION
-      ===================================== */
-
-      const {
-        data: existingApplication,
-        error: findError
-      } = await supabase
-        .from("loan_applications")
-        .select("*")
-        .eq(
-          "id",
-          req.params.id
-        )
-        .maybeSingle();
-
-      if (findError) {
-
-        console.error(
-          "FIND LOAN APPLICATION ERROR:",
-          findError
-        );
-
-        return res.status(500).json({
-
-          success: false,
-
-          message:
-            "Unable to find the loan application.",
-
-          error:
-            findError.message
-
-        });
-
-      }
-
-      if (!existingApplication) {
-
-        return res.status(404).json({
-
-          success: false,
-
-          message:
-            "Loan application not found."
-
-        });
-
-      }
-
-      const oldStatus =
-        existingApplication.status;
-
-
-      /* =====================================
-         UPDATE SUPABASE
-      ===================================== */
-
-      const updateData = {
-
-        status:
-          normalizedStatus,
-
-        reviewed_at:
-          new Date().toISOString(),
-
-        reviewed_by:
-  req.admin.id
-
-      };
-
-      if (
-        normalizedStatus === "REJECTED"
-      ) {
-
-        updateData.rejection_reason =
-          rejection_reason || null;
-
-      } else {
-
-        updateData.rejection_reason =
-          null;
-
-      }
-
-      if (
-        notes !== undefined
-      ) {
-
-        updateData.notes =
-          notes;
-
-      }
-
-      const {
-        data: updatedApplication,
-        error: updateError
-      } = await supabase
-        .from("loan_applications")
-        .update(updateData)
-        .eq(
-          "id",
-          req.params.id
-        )
-        .select()
-        .single();
-
-      if (updateError) {
-
-        console.error(
-          "UPDATE LOAN APPLICATION ERROR:",
-          updateError
-        );
-
-        return res.status(500).json({
-
-          success: false,
-
-          message:
-            "Unable to update loan application status.",
-
-          error:
-            updateError.message
-
-        });
-
-      }
-
-
-      /* =====================================
-         AUDIT LOG
-      ===================================== */
-
-      addAuditLog(
-        req.admin.email,
-        "Loan application " +
-        req.params.id +
-        " changed from " +
-        oldStatus +
-        " to " +
-        normalizedStatus
-      );
-
-
-      /* =====================================
-         RESPONSE
-      ===================================== */
-
-      res.json({
-
-        success: true,
-
-        message:
-          "Loan application status updated successfully.",
-
-        application:
-          updatedApplication
-
-      });
-
-    } catch (error) {
-
-      console.error(
-        "ADMIN LOAN STATUS SERVER ERROR:",
-        error
-      );
-
-      res.status(500).json({
-
-        success: false,
-
-        message:
-          "Loan application status could not be updated.",
-
-        error:
-          error.message
-
-      });
-
-    }
-
-  }
-);
-
 
 /* =========================================
    ADMIN STATISTICS — SUPABASE
@@ -2701,40 +2769,78 @@ app.get(
        * are not limited by Supabase's default
        * 1,000-row response limit.
        */
-      const fetchAllRows = async (table, columns) => {
 
-        const allRows = [];
-        const pageSize = 1000;
-        let from = 0;
+      const fetchAllRows =
+        async (
+          table,
+          columns
+        ) => {
 
-        while (true) {
+          const allRows = [];
 
-          const { data, error } = await supabase
-            .from(table)
-            .select(columns)
-            .range(from, from + pageSize - 1);
+          const pageSize =
+            1000;
 
-          if (error) {
-            throw new Error(
-              `${table}: ${error.message}`
+          let from =
+            0;
+
+
+          while (true) {
+
+            const {
+              data,
+              error
+            } = await supabase
+              .from(table)
+              .select(columns)
+              .range(
+                from,
+                from + pageSize - 1
+              );
+
+
+            if (error) {
+
+              throw new Error(
+                `${table}: ${error.message}`
+              );
+
+            }
+
+
+            if (
+              !data ||
+              data.length === 0
+            ) {
+
+              break;
+
+            }
+
+
+            allRows.push(
+              ...data
             );
+
+
+            if (
+              data.length < pageSize
+            ) {
+
+              break;
+
+            }
+
+
+            from +=
+              pageSize;
+
           }
 
-          if (!data || data.length === 0) {
-            break;
-          }
 
-          allRows.push(...data);
+          return allRows;
 
-          if (data.length < pageSize) {
-            break;
-          }
-
-          from += pageSize;
-        }
-
-        return allRows;
-      };
+        };
 
 
       /* =====================================
@@ -2823,52 +2929,88 @@ app.get(
          HELPER FUNCTIONS
       ===================================== */
 
-      const money = (value) =>
-        Number(value || 0);
+      const money =
+        value =>
+          Number(
+            value || 0
+          );
 
 
-      const normalize = (value) =>
-        String(value || "")
-          .trim()
-          .toLowerCase();
+      const normalize =
+        value =>
+          String(
+            value || ""
+          )
+            .trim()
+            .toLowerCase();
 
 
-      const isStatus = (row, ...statuses) => {
+      const isStatus =
+        (
+          row,
+          ...statuses
+        ) => {
 
-        const status = normalize(row.status);
+          const status =
+            normalize(
+              row.status
+            );
 
-        return statuses.some(
-          item => status === normalize(item)
-        );
+          return statuses.some(
+            item =>
+              status ===
+              normalize(item)
+          );
 
-      };
-
-
-      const isLoanStatus = (row, ...statuses) => {
-
-        const status = normalize(row.loan_status);
-
-        return statuses.some(
-          item => status === normalize(item)
-        );
-
-      };
+        };
 
 
-      const startOfMonth = new Date();
+      const isLoanStatus =
+        (
+          row,
+          ...statuses
+        ) => {
+
+          const status =
+            normalize(
+              row.loan_status
+            );
+
+          return statuses.some(
+            item =>
+              status ===
+              normalize(item)
+          );
+
+        };
+
+
+      const startOfMonth =
+        new Date();
 
       startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
+      startOfMonth.setHours(
+        0,
+        0,
+        0,
+        0
+      );
 
 
-      const isThisMonth = (date) => {
+      const isThisMonth =
+        date => {
 
-        if (!date) return false;
+          if (!date) {
+            return false;
+          }
 
-        const value = new Date(date);
+          const value =
+            new Date(date);
 
-        return value >= startOfMonth;
-      };
+          return value >=
+            startOfMonth;
+
+        };
 
 
       /* =====================================
@@ -2877,8 +3019,14 @@ app.get(
 
       const totalCustomerBalance =
         customersData.reduce(
-          (sum, customer) =>
-            sum + money(customer.balance),
+          (
+            sum,
+            customer
+          ) =>
+            sum +
+            money(
+              customer.balance
+            ),
           0
         );
 
@@ -2886,13 +3034,16 @@ app.get(
       const activeCustomers =
         customersData.filter(
           customer =>
-            normalize(customer.account_status) === "active"
+            normalize(
+              customer.account_status
+            ) === "active"
         ).length;
 
 
       const verifiedCustomers =
         customersData.filter(
-          customer => customer.is_verified === true
+          customer =>
+            customer.is_verified === true
         ).length;
 
 
@@ -2900,7 +3051,9 @@ app.get(
         customersData.filter(
           customer =>
             customer.locked_until &&
-            new Date(customer.locked_until) > new Date()
+            new Date(
+              customer.locked_until
+            ) > new Date()
         ).length;
 
 
@@ -2910,13 +3063,15 @@ app.get(
 
       const activeAdmins =
         adminsData.filter(
-          admin => admin.is_active === true
+          admin =>
+            admin.is_active === true
         ).length;
 
 
       const verifiedAdmins =
         adminsData.filter(
-          admin => admin.is_verified === true
+          admin =>
+            admin.is_verified === true
         ).length;
 
 
@@ -2924,7 +3079,9 @@ app.get(
         adminsData.filter(
           admin =>
             admin.locked_until &&
-            new Date(admin.locked_until) > new Date()
+            new Date(
+              admin.locked_until
+            ) > new Date()
         ).length;
 
 
@@ -2935,35 +3092,49 @@ app.get(
       const pendingApplications =
         applicationsData.filter(
           application =>
-            normalize(application.status) === "pending"
+            normalize(
+              application.status
+            ) === "pending"
         ).length;
 
 
       const underReviewApplications =
         applicationsData.filter(
           application =>
-            normalize(application.status) === "under review"
+            normalize(
+              application.status
+            ) === "under review"
         ).length;
 
 
       const approvedApplications =
         applicationsData.filter(
           application =>
-            normalize(application.status) === "approved"
+            normalize(
+              application.status
+            ) === "approved"
         ).length;
 
 
       const rejectedApplications =
         applicationsData.filter(
           application =>
-            normalize(application.status) === "rejected"
+            normalize(
+              application.status
+            ) === "rejected"
         ).length;
 
 
       const totalRequested =
         applicationsData.reduce(
-          (sum, application) =>
-            sum + money(application.amount),
+          (
+            sum,
+            application
+          ) =>
+            sum +
+            money(
+              application.amount
+            ),
           0
         );
 
@@ -2972,11 +3143,19 @@ app.get(
         applicationsData
           .filter(
             application =>
-              normalize(application.status) === "approved"
+              normalize(
+                application.status
+              ) === "approved"
           )
           .reduce(
-            (sum, application) =>
-              sum + money(application.amount),
+            (
+              sum,
+              application
+            ) =>
+              sum +
+              money(
+                application.amount
+              ),
             0
           );
 
@@ -2984,16 +3163,22 @@ app.get(
       const personalLoans =
         applicationsData.filter(
           application =>
-            normalize(application.loan_type)
-              .includes("personal")
+            normalize(
+              application.loan_type
+            ).includes(
+              "personal"
+            )
         ).length;
 
 
       const businessLoans =
         applicationsData.filter(
           application =>
-            normalize(application.loan_type)
-              .includes("business")
+            normalize(
+              application.loan_type
+            ).includes(
+              "business"
+            )
         ).length;
 
 
@@ -3003,32 +3188,56 @@ app.get(
 
       const totalLoanAmount =
         loansData.reduce(
-          (sum, loan) =>
-            sum + money(loan.loan_amount),
+          (
+            sum,
+            loan
+          ) =>
+            sum +
+            money(
+              loan.loan_amount
+            ),
           0
         );
 
 
       const totalLoanValue =
         loansData.reduce(
-          (sum, loan) =>
-            sum + money(loan.total_amount),
+          (
+            sum,
+            loan
+          ) =>
+            sum +
+            money(
+              loan.total_amount
+            ),
           0
         );
 
 
       const totalAmountPaid =
         loansData.reduce(
-          (sum, loan) =>
-            sum + money(loan.amount_paid),
+          (
+            sum,
+            loan
+          ) =>
+            sum +
+            money(
+              loan.amount_paid
+            ),
           0
         );
 
 
       const totalRemainingBalance =
         loansData.reduce(
-          (sum, loan) =>
-            sum + money(loan.remaining_balance),
+          (
+            sum,
+            loan
+          ) =>
+            sum +
+            money(
+              loan.remaining_balance
+            ),
           0
         );
 
@@ -3036,33 +3245,55 @@ app.get(
       const activeLoans =
         loansData.filter(
           loan =>
-            ["active", "approved", "running"]
-              .includes(normalize(loan.loan_status))
+            [
+              "active",
+              "approved",
+              "running"
+            ].includes(
+              normalize(
+                loan.loan_status
+              )
+            )
         ).length;
 
 
       const completedLoans =
         loansData.filter(
           loan =>
-            ["completed", "paid", "closed"]
-              .includes(normalize(loan.loan_status))
+            [
+              "completed",
+              "paid",
+              "closed"
+            ].includes(
+              normalize(
+                loan.loan_status
+              )
+            )
         ).length;
 
 
       const overdueLoans =
-        loansData.filter(loan => {
+        loansData.filter(
+          loan => {
 
-          if (!loan.due_date) return false;
+            if (!loan.due_date) {
+              return false;
+            }
 
-          const dueDate =
-            new Date(loan.due_date);
+            const dueDate =
+              new Date(
+                loan.due_date
+              );
 
-          return (
-            dueDate < new Date() &&
-            money(loan.remaining_balance) > 0
-          );
+            return (
+              dueDate < new Date() &&
+              money(
+                loan.remaining_balance
+              ) > 0
+            );
 
-        }).length;
+          }
+        ).length;
 
 
       /* =====================================
@@ -3071,39 +3302,65 @@ app.get(
 
       const totalScheduledAmount =
         schedulesData.reduce(
-          (sum, schedule) =>
-            sum + money(schedule.amount_due),
+          (
+            sum,
+            schedule
+          ) =>
+            sum +
+            money(
+              schedule.amount_due
+            ),
           0
         );
 
 
       const totalScheduledPaid =
         schedulesData.reduce(
-          (sum, schedule) =>
-            sum + money(schedule.amount_paid),
+          (
+            sum,
+            schedule
+          ) =>
+            sum +
+            money(
+              schedule.amount_paid
+            ),
           0
         );
 
 
       const totalScheduledRemaining =
         schedulesData.reduce(
-          (sum, schedule) =>
-            sum + money(schedule.remaining_amount),
+          (
+            sum,
+            schedule
+          ) =>
+            sum +
+            money(
+              schedule.remaining_amount
+            ),
           0
         );
 
 
       const overdueSchedules =
-        schedulesData.filter(schedule => {
+        schedulesData.filter(
+          schedule => {
 
-          if (!schedule.due_date) return false;
+            if (!schedule.due_date) {
+              return false;
+            }
 
-          return (
-            new Date(schedule.due_date) < new Date() &&
-            money(schedule.remaining_amount) > 0
-          );
+            return (
+              new Date(
+                schedule.due_date
+              ) < new Date() &&
+              money(
+                schedule.remaining_amount
+              ) > 0
+            );
 
-        }).length;
+          }
+        ).length;
 
 
       /* =====================================
@@ -3116,8 +3373,14 @@ app.get(
 
       const totalRepaymentAmount =
         repaymentsData.reduce(
-          (sum, repayment) =>
-            sum + money(repayment.amount),
+          (
+            sum,
+            repayment
+          ) =>
+            sum +
+            money(
+              repayment.amount
+            ),
           0
         );
 
@@ -3150,8 +3413,14 @@ app.get(
               )
           )
           .reduce(
-            (sum, repayment) =>
-              sum + money(repayment.amount),
+            (
+              sum,
+              repayment
+            ) =>
+              sum +
+              money(
+                repayment.amount
+              ),
             0
           );
 
@@ -3166,8 +3435,14 @@ app.get(
 
       const totalDepositAmount =
         depositsData.reduce(
-          (sum, deposit) =>
-            sum + money(deposit.amount),
+          (
+            sum,
+            deposit
+          ) =>
+            sum +
+            money(
+              deposit.amount
+            ),
           0
         );
 
@@ -3187,8 +3462,14 @@ app.get(
 
       const completedDepositAmount =
         completedDeposits.reduce(
-          (sum, deposit) =>
-            sum + money(deposit.amount),
+          (
+            sum,
+            deposit
+          ) =>
+            sum +
+            money(
+              deposit.amount
+            ),
           0
         );
 
@@ -3203,8 +3484,14 @@ app.get(
 
       const totalWithdrawalAmount =
         withdrawalsData.reduce(
-          (sum, withdrawal) =>
-            sum + money(withdrawal.amount),
+          (
+            sum,
+            withdrawal
+          ) =>
+            sum +
+            money(
+              withdrawal.amount
+            ),
           0
         );
 
@@ -3224,8 +3511,14 @@ app.get(
 
       const completedWithdrawalAmount =
         completedWithdrawals.reduce(
-          (sum, withdrawal) =>
-            sum + money(withdrawal.amount),
+          (
+            sum,
+            withdrawal
+          ) =>
+            sum +
+            money(
+              withdrawal.amount
+            ),
           0
         );
 
@@ -3240,8 +3533,14 @@ app.get(
 
       const totalTransferAmount =
         transfersData.reduce(
-          (sum, transfer) =>
-            sum + money(transfer.amount),
+          (
+            sum,
+            transfer
+          ) =>
+            sum +
+            money(
+              transfer.amount
+            ),
           0
         );
 
@@ -3261,8 +3560,14 @@ app.get(
 
       const completedTransferAmount =
         completedTransfers.reduce(
-          (sum, transfer) =>
-            sum + money(transfer.amount),
+          (
+            sum,
+            transfer
+          ) =>
+            sum +
+            money(
+              transfer.amount
+            ),
           0
         );
 
@@ -3273,8 +3578,14 @@ app.get(
 
       const totalFees =
         feesData.reduce(
-          (sum, fee) =>
-            sum + money(fee.amount),
+          (
+            sum,
+            fee
+          ) =>
+            sum +
+            money(
+              fee.amount
+            ),
           0
         );
 
@@ -3293,8 +3604,14 @@ app.get(
               )
           )
           .reduce(
-            (sum, fee) =>
-              sum + money(fee.amount),
+            (
+              sum,
+              fee
+            ) =>
+              sum +
+              money(
+                fee.amount
+              ),
             0
           );
 
@@ -3309,8 +3626,14 @@ app.get(
 
       const totalSavingsAmount =
         savingsData.reduce(
-          (sum, saving) =>
-            sum + money(saving.amount),
+          (
+            sum,
+            saving
+          ) =>
+            sum +
+            money(
+              saving.amount
+            ),
           0
         );
 
@@ -3325,8 +3648,14 @@ app.get(
 
       const totalInterestAmount =
         interestData.reduce(
-          (sum, record) =>
-            sum + money(record.interest_amount),
+          (
+            sum,
+            record
+          ) =>
+            sum +
+            money(
+              record.interest_amount
+            ),
           0
         );
 
@@ -3338,21 +3667,27 @@ app.get(
       const newCustomersThisMonth =
         customersData.filter(
           customer =>
-            isThisMonth(customer.created_at)
+            isThisMonth(
+              customer.created_at
+            )
         ).length;
 
 
       const applicationsThisMonth =
         applicationsData.filter(
           application =>
-            isThisMonth(application.created_at)
+            isThisMonth(
+              application.created_at
+            )
         ).length;
 
 
       const loansThisMonth =
         loansData.filter(
           loan =>
-            isThisMonth(loan.created_at)
+            isThisMonth(
+              loan.created_at
+            )
         ).length;
 
 
@@ -3368,8 +3703,14 @@ app.get(
 
       const repaymentsThisMonthAmount =
         repaymentsThisMonth.reduce(
-          (sum, repayment) =>
-            sum + money(repayment.amount),
+          (
+            sum,
+            repayment
+          ) =>
+            sum +
+            money(
+              repayment.amount
+            ),
           0
         );
 
@@ -3384,8 +3725,6 @@ app.get(
 
         statistics: {
 
-          /* Customers */
-
           totalCustomers:
             customersData.length,
 
@@ -3399,9 +3738,6 @@ app.get(
 
           newCustomersThisMonth,
 
-
-          /* Admins */
-
           totalAdmins:
             adminsData.length,
 
@@ -3410,9 +3746,6 @@ app.get(
           verifiedAdmins,
 
           lockedAdmins,
-
-
-          /* Applications */
 
           totalApplications:
             applicationsData.length,
@@ -3436,9 +3769,6 @@ app.get(
 
           applicationsThisMonth,
 
-
-          /* Loans */
-
           totalLoans:
             loansData.length,
 
@@ -3458,9 +3788,6 @@ app.get(
 
           loansThisMonth,
 
-
-          /* Loan schedules */
-
           totalSchedules:
             schedulesData.length,
 
@@ -3471,9 +3798,6 @@ app.get(
           totalScheduledRemaining,
 
           overdueSchedules,
-
-
-          /* Repayments */
 
           totalRepayments,
 
@@ -3488,17 +3812,11 @@ app.get(
 
           repaymentsThisMonthAmount,
 
-
-          /* Deposits */
-
           totalDeposits,
 
           totalDepositAmount,
 
           completedDepositAmount,
-
-
-          /* Withdrawals */
 
           totalWithdrawals,
 
@@ -3506,31 +3824,19 @@ app.get(
 
           completedWithdrawalAmount,
 
-
-          /* Transfers */
-
           totalTransfers,
 
           totalTransferAmount,
 
           completedTransferAmount,
 
-
-          /* Fees */
-
           totalFees,
 
           paidFees,
 
-
-          /* Savings */
-
           totalSavingsTransactions,
 
           totalSavingsAmount,
-
-
-          /* Interest */
 
           totalInterestRecords,
 
@@ -3563,6 +3869,7 @@ app.get(
 
   }
 );
+
 
 /* =========================================
    CREATE FOLLOW-UP
@@ -3767,6 +4074,7 @@ app.get(
 
       ]);
 
+
       if (
         loginAttemptsResult.error
       ) {
@@ -3789,6 +4097,7 @@ app.get(
         });
 
       }
+
 
       if (
         securityEventsResult.error
@@ -3813,6 +4122,7 @@ app.get(
 
       }
 
+
       if (
         activeSessionsResult.error
       ) {
@@ -3835,6 +4145,7 @@ app.get(
         });
 
       }
+
 
       res.json({
 
@@ -3914,6 +4225,7 @@ app.get(
         .select("*")
         .limit(100);
 
+
       if (error) {
 
         console.error(
@@ -3934,6 +4246,7 @@ app.get(
         });
 
       }
+
 
       res.json({
 
@@ -3990,6 +4303,7 @@ app.get(
         .select("*")
         .limit(100);
 
+
       if (error) {
 
         console.error(
@@ -4010,6 +4324,7 @@ app.get(
         });
 
       }
+
 
       res.json({
 
@@ -4070,6 +4385,7 @@ app.get(
         )
         .limit(100);
 
+
       if (error) {
 
         console.error(
@@ -4090,6 +4406,7 @@ app.get(
         });
 
       }
+
 
       res.json({
 
@@ -4166,6 +4483,7 @@ app.get(
 
       ]);
 
+
       if (
         loginAttempts.error
       ) {
@@ -4183,6 +4501,7 @@ app.get(
         });
 
       }
+
 
       if (
         securityEvents.error
@@ -4202,6 +4521,7 @@ app.get(
 
       }
 
+
       if (
         activeSessions.error
       ) {
@@ -4219,6 +4539,7 @@ app.get(
         });
 
       }
+
 
       res.json({
 
@@ -4285,12 +4606,14 @@ app.get(
   }
 );
 
+
 /* =========================================
    ADMIN ACCOUNT RECOVERY
    REQUEST RECOVERY OTP
 ========================================= */
 
-const recoveryRequests = new Map();
+const recoveryRequests =
+  new Map();
 
 
 app.post(
@@ -4320,7 +4643,9 @@ app.post(
 
 
       const normalizedEmail =
-        email.trim().toLowerCase();
+        email
+          .trim()
+          .toLowerCase();
 
 
       /* =====================================
@@ -4453,7 +4778,9 @@ app.post(
           otp,
 
           expiresAt:
-            new Date(expiresAt).toISOString()
+            new Date(
+              expiresAt
+            ).toISOString()
 
         }
       );
@@ -4493,6 +4820,7 @@ app.post(
   }
 );
 
+
 /* =========================================
    ADMIN ACCOUNT RECOVERY
    VERIFY RECOVERY OTP
@@ -4511,7 +4839,10 @@ app.post(
       } = req.body;
 
 
-      if (!email || !otp) {
+      if (
+        !email ||
+        !otp
+      ) {
 
         return res.status(400).json({
 
@@ -4526,7 +4857,9 @@ app.post(
 
 
       const normalizedEmail =
-        email.trim().toLowerCase();
+        email
+          .trim()
+          .toLowerCase();
 
 
       const recovery =
@@ -4607,7 +4940,8 @@ app.post(
         recovery.otp
       ) {
 
-        recovery.attempts += 1;
+        recovery.attempts +=
+          1;
 
         return res.status(400).json({
 
@@ -4625,7 +4959,8 @@ app.post(
          OTP VERIFIED
       ===================================== */
 
-      recovery.verified = true;
+      recovery.verified =
+        true;
 
       recovery.verifiedAt =
         Date.now();
@@ -4674,6 +5009,7 @@ app.post(
   }
 );
 
+
 /* =========================================
    ADMIN ACCOUNT RECOVERY
    RESET ADMIN PASSWORD
@@ -4716,7 +5052,9 @@ app.post(
 
 
       const normalizedEmail =
-        email.trim().toLowerCase();
+        email
+          .trim()
+          .toLowerCase();
 
 
       /* =====================================
@@ -4896,6 +5234,7 @@ app.post(
 
   }
 );
+
 
 /* =========================================
    404 HANDLER
