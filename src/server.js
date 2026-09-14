@@ -3534,6 +3534,16 @@ app.get(
             ),
           0
         );
+      
+
+      const pendingWithdrawals =
+        withdrawalsData.filter(
+          withdrawal =>
+            isStatus(
+              withdrawal,
+              "pending"
+            )
+        ).length;
 
 
       /* =====================================
