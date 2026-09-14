@@ -2893,9 +2893,20 @@ app.get(
           "id,created_at,customer_id,amount,status"
         ),
 
-        fetchAllRows(
+                fetchAllRows(
           "transfers",
           "id,created_at,sender_customer_id,amount,status"
+        ).catch(
+          error => {
+
+            console.error(
+              "ADMIN STATISTICS TRANSFERS ERROR:",
+              error
+            );
+
+            return [];
+
+          }
         ),
 
         fetchAllRows(
