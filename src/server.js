@@ -1630,6 +1630,93 @@ app.get(
 
 
 /* =========================================
+   GET ALL TRANSFERS
+   REAL SUPABASE DATA
+========================================= */
+
+app.get(
+  "/api/admin/transfers",
+
+  authenticateAdmin,
+
+  async (req, res) => {
+
+    try {
+
+      const {
+        data,
+        error
+      } = await supabase
+        .from("transfers")
+        .select(`
+          id,
+          created_at,
+          sender_customer_id,
+          amount,
+          status
+        `)
+        .order(
+          "created_at",
+          {
+            ascending: false
+          }
+        );
+
+      if (error) {
+
+        console.error(
+          "ADMIN TRANSFERS ERROR:",
+          error
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to load transfers from Supabase.",
+
+          error:
+            error.message
+
+        });
+
+      }
+
+      res.json({
+
+        success: true,
+
+        transfers:
+          data || []
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "ADMIN TRANSFERS SERVER ERROR:",
+        error
+      );
+
+      res.status(500).json({
+
+        success: false,
+
+        message:
+          "Transfers could not be loaded.",
+
+        error:
+          error.message
+
+      });
+
+    }
+
+  }
+);
+
+/* =========================================
    GET ALL LOAN APPLICATIONS
    REAL SUPABASE DATA
 ========================================= */
