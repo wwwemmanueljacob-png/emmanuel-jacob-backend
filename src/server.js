@@ -107,6 +107,7 @@ app.use(
 );
 
 app.use(repaymentsRouter);
+app.use(withdrawalsRouter);
 
 app.use(
   "/api/admin/schedules",
