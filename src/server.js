@@ -2116,22 +2116,30 @@ app.put(
 
 
       /*
-       * Use the application's interest rate.
-       *
-       * If no valid rate exists, use 10%.
-       */
+ * Admin must provide the interest rate
+ * when approving the loan.
+ */
 
-      const storedInterestRate =
-        Number(
-          existingApplication.interest_rate
-        );
+const interestRate =
+  Number(
+    req.body.interest_rate
+  );
 
-      const interestRate =
-        Number.isFinite(
-          storedInterestRate
-        )
-          ? storedInterestRate
-          : 10;
+if (
+  !Number.isFinite(interestRate) ||
+  interestRate < 0
+) {
+
+  return res.status(400).json({
+
+    success: false,
+
+    message:
+      "A valid interest rate is required for loan approval."
+
+  });
+
+}
 
 
       if (
@@ -2163,23 +2171,6 @@ app.put(
 
           message:
             "Invalid loan duration."
-
-        });
-
-      }
-
-
-      if (
-        !Number.isFinite(interestRate) ||
-        interestRate < 0
-      ) {
-
-        return res.status(400).json({
-
-          success: false,
-
-          message:
-            "Invalid interest rate."
 
         });
 
