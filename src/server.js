@@ -1652,8 +1652,15 @@ app.get(
           id,
           created_at,
           sender_customer_id,
+          sender_account_id,
+          recipient_customer_id,
+          recipient_account_id,
           amount,
-          status
+          reference_number,
+          status,
+          description,
+          processed_at,
+          processed_by
         `)
         .order(
           "created_at",
