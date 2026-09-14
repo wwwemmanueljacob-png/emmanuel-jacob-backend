@@ -3705,6 +3705,43 @@ app.get(
           0
         );
 
+            /* =====================================
+         ADMIN FINANCIAL BALANCE
+      ===================================== */
+
+      const loanDisbursements =
+        loansData.reduce(
+          (
+            sum,
+            loan
+          ) =>
+            sum +
+            money(
+              loan.loan_amount
+            ),
+          0
+        );
+
+
+      const adminAvailableBalance =
+        completedDepositAmount +
+        completedRepaymentAmount +
+        paidFees -
+        completedWithdrawalAmount -
+        loanDisbursements;
+
+
+      const totalOutstandingLoans =
+        totalRemainingBalance;
+
+
+      const totalInterestEarned =
+        totalInterestAmount;
+
+
+      const totalLoanDisbursed =
+        loanDisbursements;
+
 
       /* =====================================
          RESPONSE
@@ -3726,6 +3763,14 @@ app.get(
           lockedCustomers,
 
           totalCustomerBalance,
+
+          adminAvailableBalance,
+
+          totalLoanDisbursed,
+
+          totalOutstandingLoans,
+
+          totalInterestEarned,
 
           newCustomersThisMonth,
 
