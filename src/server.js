@@ -1836,6 +1836,161 @@ app.put(
   }
 );
 
+/* =========================================
+   ADMIN APPROVE WITHDRAWAL
+========================================= */
+
+app.put(
+  "/api/admin/withdrawals/:id/approve",
+
+  authenticateAdmin,
+
+  async (req, res) => {
+
+    try {
+
+      const withdrawalId =
+        Number(req.params.id);
+
+      const adminId =
+        Number(req.admin?.id);
+
+
+      /* ==============================
+         VALIDATE WITHDRAWAL ID
+      ============================== */
+
+      if (
+        !Number.isInteger(withdrawalId)
+      ) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Invalid withdrawal ID."
+
+        });
+
+      }
+
+
+      /* ==============================
+         VALIDATE ADMIN ID
+      ============================== */
+
+      if (
+        !Number.isInteger(adminId)
+      ) {
+
+        return res.status(401).json({
+
+          success: false,
+
+          message:
+            "Invalid administrator session."
+
+        });
+
+      }
+
+
+      /* ==============================
+         APPROVE WITHDRAWAL
+         ATOMIC SUPABASE RPC
+      ============================== */
+
+      const {
+        data,
+        error
+      } = await supabase.rpc(
+
+        "approve_customer_withdrawal",
+
+        {
+          p_withdrawal_id:
+            withdrawalId,
+
+          p_admin_id:
+            adminId
+        }
+
+      );
+
+
+      /* ==============================
+         RPC ERROR
+      ============================== */
+
+      if (error) {
+
+        console.error(
+
+          "ADMIN WITHDRAWAL APPROVAL RPC ERROR:",
+
+          error
+
+        );
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            error.message ||
+            "Unable to approve withdrawal.",
+
+          error:
+            error.message
+
+        });
+
+      }
+
+
+      /* ==============================
+         SUCCESS
+      ============================== */
+
+      return res.json({
+
+        success: true,
+
+        message:
+          "Withdrawal approved and completed successfully.",
+
+        result:
+          data
+
+      });
+
+    } catch (error) {
+
+      console.error(
+
+        "ADMIN WITHDRAWAL APPROVAL SERVER ERROR:",
+
+        error
+
+      );
+
+      return res.status(500).json({
+
+        success: false,
+
+        message:
+          "Unable to approve withdrawal.",
+
+        error:
+          error.message
+
+      });
+
+    }
+
+  }
+);
 
 /* =========================================
    GET ALL WITHDRAWALS
