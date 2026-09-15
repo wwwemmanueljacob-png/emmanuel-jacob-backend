@@ -1630,6 +1630,212 @@ app.get(
   }
 );
 
+/* =========================================
+   ADMIN REJECT WITHDRAWAL
+========================================= */
+
+app.put(
+  "/api/admin/withdrawals/:id/reject",
+
+  authenticateAdmin,
+
+  async (req, res) => {
+
+    try {
+
+      const withdrawalId =
+        req.params.id;
+
+      const {
+        rejection_reason
+      } = req.body;
+
+
+      /* ==============================
+         VALIDATE REASON
+      ============================== */
+
+      if (
+        !rejection_reason ||
+        !String(rejection_reason).trim()
+      ) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "A rejection reason is required."
+
+        });
+
+      }
+
+
+      /* ==============================
+         GET WITHDRAWAL
+      ============================== */
+
+      const {
+        data: withdrawal,
+        error: withdrawalError
+      } = await supabase
+
+        .from("withdrawals")
+
+        .select(`
+          id,
+          customer_id,
+          amount,
+          status
+        `)
+
+        .eq(
+          "id",
+          withdrawalId
+        )
+
+        .single();
+
+
+      if (withdrawalError) {
+
+        console.error(
+          "ADMIN WITHDRAWAL LOOKUP ERROR:",
+          withdrawalError
+        );
+
+        return res.status(404).json({
+
+          success: false,
+
+          message:
+            "Withdrawal request not found."
+
+        });
+
+      }
+
+
+      /* ==============================
+         ONLY PENDING CAN BE REJECTED
+      ============================== */
+
+      if (
+        String(withdrawal.status)
+          .toLowerCase() !== "pending"
+      ) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Only pending withdrawals can be rejected."
+
+        });
+
+      }
+
+
+      /* ==============================
+         UPDATE WITHDRAWAL
+      ============================== */
+
+      const {
+        data: updatedWithdrawal,
+        error: updateError
+      } = await supabase
+
+        .from("withdrawals")
+
+        .update({
+
+          status: "rejected",
+
+          description:
+            String(rejection_reason).trim(),
+
+          processed_by:
+            req.admin.id,
+
+          processed_at:
+            new Date().toISOString()
+
+        })
+
+        .eq(
+          "id",
+          withdrawalId
+        )
+
+        .select()
+
+        .single();
+
+
+      if (updateError) {
+
+        console.error(
+          "ADMIN WITHDRAWAL REJECTION ERROR:",
+          updateError
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to reject withdrawal.",
+
+          error:
+            updateError.message
+
+        });
+
+      }
+
+
+      /* ==============================
+         SUCCESS
+      ============================== */
+
+      return res.json({
+
+        success: true,
+
+        message:
+          "Withdrawal request rejected successfully.",
+
+        withdrawal:
+          updatedWithdrawal
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "ADMIN WITHDRAWAL REJECT SERVER ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+
+        success: false,
+
+        message:
+          "Unable to reject withdrawal.",
+
+        error:
+          error.message
+
+      });
+
+    }
+
+  }
+);
+
 
 /* =========================================
    GET ALL WITHDRAWALS
