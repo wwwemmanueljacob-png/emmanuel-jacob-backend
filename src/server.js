@@ -25,6 +25,7 @@ import customerKYCRouter from "./routes/CustomerKYC.js";
 import repaymentsRouter from "./routes/repayments.js";
 import withdrawalsRouter from "./routes/withdrawals.js";
 import adminSchedulesRouter from "./routes/AdminSchedules.js";
+import loanProductsRouter from "./routes/loanProducts.js";
 
 dotenv.config();
 
@@ -114,6 +115,8 @@ app.use(
   authenticateAdmin,
   adminSchedulesRouter
 );
+
+app.use("/api/admin/loan-products", loanProductsRouter);
 
 
 /* =========================================
