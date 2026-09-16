@@ -127,46 +127,39 @@ router.post("/", async (req, res) => {
                 .from("loan_products")
                 .insert({
 
-                    product_code:
-                        product_code.trim(),
+    name:
+        name.trim(),
 
-                    name:
-                        name.trim(),
+    description:
+        description || null,
 
-                    description:
-                        description || null,
+    minimum_amount:
+        Number(min_amount),
 
-                    min_amount:
-                        Number(min_amount),
+    maximum_amount:
+        Number(max_amount),
 
-                    max_amount:
-                        Number(max_amount),
+    interest_rate:
+        Number(interest_rate),
 
-                    interest_rate:
-                        Number(interest_rate),
+    minimum_duration_months:
+        Number(min_duration_months),
 
-                    interest_type:
-                        interest_type || "FLAT",
+    maximum_duration_months:
+        Number(max_duration_months),
 
-                    min_duration_months:
-                        Number(min_duration_months),
+    processing_fee:
+        Number(processing_fee || 0),
 
-                    max_duration_months:
-                        Number(max_duration_months),
+    late_payment_fee:
+        0,
 
-                    processing_fee:
-                        Number(processing_fee || 0),
+    is_active:
+        status === "ACTIVE"
 
-                    processing_fee_type:
-                        processing_fee_type || "FIXED",
+})
 
-                    eligibility:
-                        eligibility || null,
-
-                    status:
-                        status || "ACTIVE"
-
-                })
+            
                 .select()
                 .single();
 
