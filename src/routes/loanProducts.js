@@ -208,5 +208,163 @@ router.post("/", async (req, res) => {
 
 });
 
+/* =========================================================
+   UPDATE LOAN PRODUCT
+========================================================= */
+
+router.put("/:id", async (req, res) => {
+
+    try {
+
+        const { id } =
+            req.params;
+
+
+        const {
+            name,
+            description,
+            minimum_amount,
+            maximum_amount,
+            interest_rate,
+            minimum_duration_months,
+            maximum_duration_months,
+            processing_fee,
+            late_payment_fee,
+            is_active
+        } = req.body;
+
+
+        if(!id || !name){
+
+            return res.status(400).json({
+                error:
+                    "Product ID and product name are required."
+            });
+
+        }
+
+
+        if(
+            Number(minimum_amount) >
+            Number(maximum_amount)
+        ){
+
+            return res.status(400).json({
+                error:
+                    "Minimum amount cannot exceed maximum amount."
+            });
+
+        }
+
+
+        if(
+            Number(minimum_duration_months) >
+            Number(maximum_duration_months)
+        ){
+
+            return res.status(400).json({
+                error:
+                    "Minimum duration cannot exceed maximum duration."
+            });
+
+        }
+
+
+        const { data, error } =
+            await supabase
+                .from("loan_products")
+                .update({
+
+                    name:
+                        name.trim(),
+
+                    description:
+                        description || null,
+
+                    minimum_amount:
+                        Number(minimum_amount),
+
+                    maximum_amount:
+                        Number(maximum_amount),
+
+                    interest_rate:
+                        Number(interest_rate),
+
+                    minimum_duration_months:
+                        Number(
+                            minimum_duration_months
+                        ),
+
+                    maximum_duration_months:
+                        Number(
+                            maximum_duration_months
+                        ),
+
+                    processing_fee:
+                        Number(
+                            processing_fee || 0
+                        ),
+
+                    late_payment_fee:
+                        Number(
+                            late_payment_fee || 0
+                        ),
+
+                    is_active:
+                        Boolean(is_active),
+
+                    updated_at:
+                        new Date().toISOString()
+
+                })
+                .eq("id", id)
+                .select()
+                .single();
+
+
+        if(error){
+
+            console.error(
+                "Loan product update error:",
+                error
+            );
+
+            return res.status(500).json({
+                error:
+                    "Unable to update loan product.",
+                details:
+                    error.message
+            });
+
+        }
+
+
+        res.json({
+
+            message:
+                "Loan product updated successfully.",
+
+            loanProduct:
+                data
+
+        });
+
+
+    }catch(error){
+
+        console.error(
+            "Loan product update route error:",
+            error
+        );
+
+        res.status(500).json({
+            error:
+                "Server error while updating loan product."
+        });
+
+    }
+
+});
+
 
 export default router;
