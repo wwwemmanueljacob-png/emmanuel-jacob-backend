@@ -185,18 +185,59 @@ router.put("/api/settings/:id", async (req, res) => {
         } = req.body;
 
 
+        const updates = {};
+
+
+        if(
+            setting_key !== undefined
+        ){
+
+            updates.setting_key =
+                setting_key;
+
+        }
+
+
+        if(
+            setting_value !== undefined
+        ){
+
+            updates.setting_value =
+                setting_value;
+
+        }
+
+
+        if(
+            description !== undefined
+        ){
+
+            updates.description =
+                description;
+
+        }
+
+
+        if(
+            Object.keys(updates).length === 0
+        ){
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "No setting changes supplied."
+
+            });
+
+        }
+
+
         const { data, error } =
             await supabase
                 .from("system_settings")
-                .update({
-
-                    setting_key,
-
-                    setting_value,
-
-                    description
-
-                })
+                .update(updates)
                 .eq("id", id)
                 .select()
                 .single();
