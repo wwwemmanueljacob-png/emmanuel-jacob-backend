@@ -26,6 +26,7 @@ import repaymentsRouter from "./routes/repayments.js";
 import followupsRouter from "./routes/followups.js";
 import loanDocumentsRouter from "./routes/loanDocuments.js";
 import reportsRouter from "./routes/reports.js";
+import settingsRouter from "./routes/settings.js";
 import withdrawalsRouter from "./routes/withdrawals.js";
 import adminSchedulesRouter from "./routes/AdminSchedules.js";
 import loanProductsRouter from "./routes/loanProducts.js";
@@ -114,6 +115,7 @@ app.use(repaymentsRouter);
 app.use(followupsRouter);
 app.use(loanDocumentsRouter);
 app.use(reportsRouter);
+app.use(settingsRouter);
 app.use(withdrawalsRouter);
 
 app.use(
