@@ -14,12 +14,20 @@ router.get(
 
         try {
 
-            const { data, error } = await supabase
-                .from("loan_documents")
-                .select("*")
-                .order("created_at", {
-                    ascending: false
-                });
+const { data, error } = await supabase
+    .from("loan_documents")
+    .select(`
+        *,
+        customers (
+            id,
+            full_name,
+            phone,
+            email
+        )
+    `)
+    .order("created_at", {
+        ascending: false
+    });
 
 
             if (error) {
