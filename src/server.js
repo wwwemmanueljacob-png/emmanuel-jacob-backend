@@ -23,6 +23,7 @@ import adminStatementsRouter from "./routes/AdminStatements.js";
 import adminKYCRouter from "./routes/AdminKYC.js";
 import customerKYCRouter from "./routes/CustomerKYC.js";
 import repaymentsRouter from "./routes/repayments.js";
+import followupsRouter from "./routes/followups.js";
 import withdrawalsRouter from "./routes/withdrawals.js";
 import adminSchedulesRouter from "./routes/AdminSchedules.js";
 import loanProductsRouter from "./routes/loanProducts.js";
@@ -108,6 +109,7 @@ app.use(
 );
 
 app.use(repaymentsRouter);
+app.use(followupsRouter);
 app.use(withdrawalsRouter);
 
 app.use(
