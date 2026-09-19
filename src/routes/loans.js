@@ -1,5 +1,6 @@
 import express from "express";
 import { supabase } from "../lib/supabase.js";
+import { authenticate } from "./customerAuth.js";
 
 const router = express.Router();
 
@@ -10,14 +11,13 @@ Create a new loan application
 =========================================================
 */
 
-router.post("/api/loans/apply", async (req, res) => {
+router.post("/api/loans/apply", authenticate, async (req, res) => {
   try {
     const {
-      customer_id,
-      loan_type,
-      amount,
-      duration_months,
-      purpose,
+  loan_type,
+  amount,
+  duration_months,
+  purpose,
 
       applicant_name,
       phone,
@@ -37,13 +37,6 @@ router.post("/api/loans/apply", async (req, res) => {
     /* -----------------------------------------------
        BASIC VALIDATION
     ------------------------------------------------ */
-
-    if (!customer_id) {
-      return res.status(400).json({
-        success: false,
-        message: "Customer ID is required."
-      });
-    }
 
     if (!loan_type) {
       return res.status(400).json({
@@ -94,7 +87,7 @@ router.post("/api/loans/apply", async (req, res) => {
         address,
         occupation
       `)
-      .eq("id", customer_id)
+      .eq("id", req.customer.id)
       .maybeSingle();
 
     if (customerError) {
@@ -170,7 +163,7 @@ router.post("/api/loans/apply", async (req, res) => {
     ------------------------------------------------ */
 
     const application = {
-      customer_id: customer.id,
+      customer_id: req.customer.id,
 
       loan_type:
         normalizedLoanType,
@@ -307,7 +300,7 @@ router.get(
       } = await supabase
         .from("loan_applications")
         .select("*")
-        .eq("customer_id", customerId)
+        .eq("customer_id", req.customer.id)
         .order(
           "created_at",
           {
