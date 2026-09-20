@@ -465,6 +465,7 @@ router.post("/api/notifications", async (req, res) => {
 
 router.put(
     "/api/notifications/:id/read",
+    authenticate,
     async (req, res) => {
 
         try {
