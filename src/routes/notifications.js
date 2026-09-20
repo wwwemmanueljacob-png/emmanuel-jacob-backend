@@ -474,15 +474,54 @@ router.put(
                 req.params;
 
 
-            const { data, error } =
-                await supabase
-                    .from("notifications")
-                    .update({
-                        is_read: true
-                    })
-                    .eq("id", id)
-                    .select()
-                    .single();
+            const authenticatedCustomerId =
+    Number(req.customerId);
+
+const { data: notification, error: findError } =
+    await supabase
+        .from("notifications")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+if (findError || !notification) {
+
+    return res.status(404).json({
+
+        success: false,
+
+        message:
+            "Notification not found."
+
+    });
+
+}
+
+if (
+    Number(notification.customer_id) !==
+    authenticatedCustomerId
+) {
+
+    return res.status(403).json({
+
+        success: false,
+
+        message:
+            "You are not authorized to update this notification."
+
+    });
+
+}
+
+const { data, error } =
+    await supabase
+        .from("notifications")
+        .update({
+            is_read: true
+        })
+        .eq("id", id)
+        .select()
+        .single();
 
 
             if(error){
