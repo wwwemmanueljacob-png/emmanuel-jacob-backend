@@ -1,5 +1,6 @@
 import express from "express";
 import { supabase } from "../lib/supabase.js";
+import { createNotification } from "../lib/notifications.js";
 
 const router = express.Router();
 
@@ -295,85 +296,60 @@ router.post("/api/notifications", async (req, res) => {
         }
 
 
-        const notification = {
+        const result =
+    await createNotification({
 
-            customer_id:
-                customer_id ?? null,
+        customer_id,
 
-            admin_id:
-                admin_id ?? null,
+        admin_id,
 
-            title,
+        title,
 
-            message,
+        message,
 
-            type:
-                type || "GENERAL",
+        type: type || "GENERAL",
 
-            is_read:
-                is_read ?? false,
+        is_read: is_read ?? false,
 
-            priority:
-                priority || "NORMAL",
+        priority: priority || "NORMAL",
 
-            sms_required:
-                sms_required ?? false,
+        sms_required: sms_required ?? false,
 
-            sms_status:
-                sms_status ||
-                (
-                    sms_required
-                    ? "PENDING"
-                    : "NOT_REQUIRED"
-                ),
+        sms_status:
 
-            sms_sent_at:
-                sms_sent_at ?? null,
+            sms_status ||
 
-            sms_error:
-                sms_error ?? null,
+            (
+                sms_required
+                ? "PENDING"
+                : "NOT_REQUIRED"
+            ),
 
-            reference_type:
-                reference_type ?? null,
+        sms_sent_at,
 
-            reference_id:
-                reference_id ?? null,
+        sms_error,
 
-            action:
-                action ?? null,
+        reference_type,
 
-            created_by:
-                created_by ?? null,
+        reference_id,
 
-            expires_at:
-                expires_at ?? null
+        action,
 
-        };
+        created_by,
+
+        expires_at
+
+    });
 
 
-        const { data, error } =
-            await supabase
-                .from("notifications")
-                .insert(notification)
-                .select()
-                .single();
+        if(!result.success){
 
-
-        if(error){
-
-            console.error(
-                "NOTIFICATION CREATE ERROR:",
-                error
-            );
-
-            return res.status(500).json({
-
-                success: false,
-
-                message:
-                    error.message
-
-            });
+    return res.status(500).json({
+        success:false,
+        message:
+            result.error ||
+            "Failed to create notification."
+    });
 
         }
 
@@ -383,7 +359,7 @@ router.post("/api/notifications", async (req, res) => {
             success: true,
 
             notification:
-                data
+    result.notification
 
         });
 
