@@ -1,5 +1,6 @@
 import express from "express";
 import { supabase } from "../lib/supabase.js";
+import { notifyCustomer } from "../lib/notifications.js";
 import { authenticate } from "./customerAuth.js";
 
 const router = express.Router();
@@ -303,6 +304,39 @@ router.post(
          SUCCESS
       ------------------------------------------------ */
 
+      await notifyCustomer({
+
+  customer_id:
+    req.customer.id,
+
+  title:
+    "Loan Application Submitted",
+
+  message:
+    `Your ${application.loan_type} loan application of MWK ${application.amount} has been submitted successfully and is now under review.`,
+
+  type:
+    "LOAN_APPLICATION",
+
+  priority:
+    "NORMAL",
+
+  sms_required:
+    false,
+
+  reference_type:
+    "loan_application",
+
+  reference_id:
+    data.id,
+
+  action:
+    "LOAN_APPLICATION_SUBMITTED",
+
+  created_by:
+    req.customer.id
+
+});
       return res.status(201).json({
 
         success: true,
