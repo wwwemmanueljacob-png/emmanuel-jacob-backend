@@ -75,29 +75,95 @@ router.get("/api/notifications", async (req, res) => {
 
 /* =========================================================
    GET CUSTOMER NOTIFICATIONS
+   SECURED BY CUSTOMER SESSION
 ========================================================= */
 
 router.get(
     "/api/notifications/customer/:customerId",
+    authenticate,
     async (req, res) => {
 
         try {
 
-            const { customerId } =
-                req.params;
+            /*
+            -------------------------------------------------
+            USE THE AUTHENTICATED CUSTOMER ID
+            -------------------------------------------------
+            */
+
+            const authenticatedCustomerId =
+                req.customerId;
 
 
-            const { data, error } =
-                await supabase
-                    .from("notifications")
-                    .select("*")
-                    .eq("customer_id", customerId)
-                    .order("created_at", {
+            /*
+            -------------------------------------------------
+            OPTIONAL URL CUSTOMER ID CHECK
+            -------------------------------------------------
+            */
+
+            const requestedCustomerId =
+                Number(
+                    req.params.customerId
+                );
+
+            const actualCustomerId =
+                Number(
+                    authenticatedCustomerId
+                );
+
+
+            /*
+            -------------------------------------------------
+            PREVENT ACCESS TO ANOTHER CUSTOMER'S
+            NOTIFICATIONS
+            -------------------------------------------------
+            */
+
+            if (
+                !Number.isInteger(
+                    requestedCustomerId
+                ) ||
+                requestedCustomerId !==
+                    actualCustomerId
+            ) {
+
+                return res.status(403).json({
+
+                    success: false,
+
+                    message:
+                        "You are not authorized to view these notifications."
+
+                });
+
+            }
+
+
+            /*
+            -------------------------------------------------
+            GET ONLY AUTHENTICATED CUSTOMER NOTIFICATIONS
+            -------------------------------------------------
+            */
+
+            const {
+                data,
+                error
+            } = await supabase
+                .from("notifications")
+                .select("*")
+                .eq(
+                    "customer_id",
+                    actualCustomerId
+                )
+                .order(
+                    "created_at",
+                    {
                         ascending: false
-                    });
+                    }
+                );
 
 
-            if(error){
+            if (error) {
 
                 console.error(
                     "CUSTOMER NOTIFICATIONS ERROR:",
@@ -116,6 +182,12 @@ router.get(
             }
 
 
+            /*
+            -------------------------------------------------
+            SUCCESS
+            -------------------------------------------------
+            */
+
             return res.json({
 
                 success: true,
@@ -125,7 +197,8 @@ router.get(
 
             });
 
-        }catch(error){
+
+        } catch (error) {
 
             console.error(
                 "CUSTOMER NOTIFICATIONS ROUTE ERROR:",
