@@ -1,6 +1,7 @@
 import express from "express";
 import crypto from "crypto";
 import { supabase } from "../lib/supabase.js";
+import { authenticate } from "./customerAuth.js";
 
 const router = express.Router();
 
