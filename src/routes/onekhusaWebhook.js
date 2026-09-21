@@ -227,7 +227,7 @@ router.post(
 
                 console.error(
     "ONEKHUSA WEBHOOK PAYMENT DATA:",
-    {
+    JSON.stringify({
         event,
         amount,
         referenceNumber,
@@ -236,7 +236,7 @@ router.post(
             payload?.TransactionStatusCode,
         payloadKeys:
             Object.keys(payload || {})
-    }
+    })
 );
 
                 return res.status(400).json({
