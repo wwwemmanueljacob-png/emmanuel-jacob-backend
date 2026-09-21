@@ -226,8 +226,18 @@ router.post(
             ) {
 
                 console.error(
-                    "ONEKHUSA WEBHOOK: Invalid payment data."
-                );
+    "ONEKHUSA WEBHOOK PAYMENT DATA:",
+    {
+        event,
+        amount,
+        referenceNumber,
+        sourceReferenceNumber,
+        transactionStatusCode:
+            payload?.TransactionStatusCode,
+        payloadKeys:
+            Object.keys(payload || {})
+    }
+);
 
                 return res.status(400).json({
 
