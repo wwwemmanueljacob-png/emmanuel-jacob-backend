@@ -80,10 +80,39 @@ router.get(
 
     try {
 
-      const customerId =
-        Number(req.params.customerId);
+      const requestedCustomerId =
+  Number(req.params.customerId);
 
-      if (!Number.isInteger(customerId)) {
+const authenticatedCustomerId =
+  Number(req.customerId);
+
+if (
+  !Number.isInteger(requestedCustomerId) ||
+  !Number.isInteger(authenticatedCustomerId)
+) {
+
+  return res.status(400).json({
+    success: false,
+    message: "Invalid customer ID"
+  });
+
+}
+
+if (
+  requestedCustomerId !==
+  authenticatedCustomerId
+) {
+
+  return res.status(403).json({
+    success: false,
+    message:
+      "You are not authorized to view these transactions."
+  });
+
+}
+
+const customerId =
+  authenticatedCustomerId;
 
         return res.status(400).json({
           success: false,
