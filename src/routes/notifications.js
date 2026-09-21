@@ -731,6 +731,7 @@ router.put(
 
 router.delete(
     "/api/notifications/:id",
+    authenticateAdmin,
     async (req, res) => {
 
         try {
