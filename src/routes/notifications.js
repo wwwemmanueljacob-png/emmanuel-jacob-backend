@@ -234,15 +234,29 @@ router.get(
 
         try {
 
-            const { adminId } =
-                req.params;
+            const authenticatedAdminId =
+    Number(req.admin.id);
+
+const requestedAdminId =
+    Number(req.params.adminId);
+
+if (
+    !Number.isInteger(requestedAdminId) ||
+    requestedAdminId !== authenticatedAdminId
+) {
+    return res.status(403).json({
+        success: false,
+        message:
+            "You are not authorized to view these notifications."
+    });
+}
 
 
             const { data, error } =
                 await supabase
                     .from("notifications")
                     .select("*")
-                    .eq("admin_id", adminId)
+                    .eq("admin_id", authenticatedAdminId)
                     .order("created_at", {
                         ascending: false
                     });
