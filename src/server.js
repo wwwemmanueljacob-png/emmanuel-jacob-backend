@@ -4,6 +4,10 @@ import dotenv from "dotenv";
 import crypto from "crypto";
 
 import { supabase } from "./lib/supabase.js";
+import {
+  authenticateAdmin,
+  adminSessions
+} from "./middleware/adminAuth.js";
 
 import testSupabaseRouter from "./testSupabase.js";
 import customersRouter from "./routes/customers.js";
@@ -168,8 +172,6 @@ const customers = [
 ];
 
 const sessions = new Map();
-
-const adminSessions = new Map();
 
 const applications = [];
 
