@@ -184,35 +184,35 @@ router.post(
             ===================================================== */
 
             const amount =
-                Number(
-                    payload?.TransactionAmount
-                );
+    Number(
+        payload?.transactionAmount
+    );
 
-            const referenceNumber =
-                String(
-                    payload?.TransactionReferenceNumber || ""
-                ).trim();
+const referenceNumber =
+    String(
+        payload?.transactionReferenceNumber || ""
+    ).trim();
 
-            const sourceReferenceNumber =
-                String(
-                    payload?.SourceReferenceNumber || ""
-                ).trim();
+const sourceReferenceNumber =
+    String(
+        payload?.sourceReferenceNumber || ""
+    ).trim();
 
-            const sourceAccountName =
-                String(
-                    payload?.SourceAccountName || ""
-                ).trim();
+const sourceAccountName =
+    String(
+        payload?.sourceAccountName || ""
+    ).trim();
 
-            const sourceInstitution =
-                String(
-                    payload?.SourceInstitution || ""
-                ).trim();
+const sourceInstitution =
+    String(
+        payload?.sourceInstitution || ""
+    ).trim();
 
-            const description =
-                String(
-                    payload?.TransactionDescription ||
-                    "OneKhusa payment"
-                ).trim();
+const description =
+    String(
+        payload?.transactionDescription ||
+        "OneKhusa payment"
+    ).trim();
 
 
             /* =====================================================
