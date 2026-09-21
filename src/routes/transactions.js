@@ -504,9 +504,9 @@ router.post(
         balance_after:
           balanceAfter,
 
-        reference:
+        reference_number:
 
-          reference,
+         reference,
 
         related_loan_id:
           related_loan_id
