@@ -581,6 +581,7 @@ const { data, error } =
 
 router.put(
     "/api/notifications/:id",
+    authenticateAdmin,
     async (req, res) => {
 
         try {
