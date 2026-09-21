@@ -1,6 +1,8 @@
 import express from "express";
 import crypto from "crypto";
 
+import { supabase } from "../lib/supabase.js";
+
 const router = express.Router();
 
 
@@ -31,6 +33,10 @@ router.post(
                 process.env.ONEKHUSA_WEBHOOK_SECRET;
 
 
+            /* =====================================================
+               SECURITY CHECK
+            ===================================================== */
+
             if (
                 !signature ||
                 !event ||
@@ -53,6 +59,10 @@ router.post(
             }
 
 
+            /* =====================================================
+               RAW BODY
+            ===================================================== */
+
             const rawBody =
                 Buffer.isBuffer(req.body)
                     ? req.body
@@ -60,6 +70,10 @@ router.post(
                         req.body || ""
                     );
 
+
+            /* =====================================================
+               HMAC SHA512 VERIFICATION
+            ===================================================== */
 
             const expectedSignature =
                 crypto
@@ -109,6 +123,10 @@ router.post(
             }
 
 
+            /* =====================================================
+               PARSE PAYLOAD
+            ===================================================== */
+
             let payload;
 
             try {
@@ -136,22 +154,248 @@ router.post(
             }
 
 
+            /* =====================================================
+               ONLY PROCESS SUCCESSFUL PAYMENTS
+            ===================================================== */
+
+            if (
+                event !== "payment.success" &&
+                payload?.TransactionStatusCode !== "S"
+            ) {
+
+                console.log(
+                    "ONEKHUSA WEBHOOK: Payment not successful."
+                );
+
+                return res.status(200).json({
+
+                    success: true,
+
+                    message:
+                        "Webhook received but payment was not successful."
+
+                });
+
+            }
+
+
+            /* =====================================================
+               ONEKHUSA PAYMENT DETAILS
+            ===================================================== */
+
+            const amount =
+                Number(
+                    payload?.TransactionAmount
+                );
+
+            const referenceNumber =
+                String(
+                    payload?.TransactionReferenceNumber || ""
+                ).trim();
+
+            const sourceReferenceNumber =
+                String(
+                    payload?.SourceReferenceNumber || ""
+                ).trim();
+
+            const sourceAccountName =
+                String(
+                    payload?.SourceAccountName || ""
+                ).trim();
+
+            const sourceInstitution =
+                String(
+                    payload?.SourceInstitution || ""
+                ).trim();
+
+            const description =
+                String(
+                    payload?.TransactionDescription ||
+                    "OneKhusa payment"
+                ).trim();
+
+
+            /* =====================================================
+               VALIDATE PAYMENT DATA
+            ===================================================== */
+
+            if (
+                !Number.isFinite(amount) ||
+                amount <= 0 ||
+                !referenceNumber
+            ) {
+
+                console.error(
+                    "ONEKHUSA WEBHOOK: Invalid payment data."
+                );
+
+                return res.status(400).json({
+
+                    success: false,
+
+                    message:
+                        "Invalid payment information."
+
+                });
+
+            }
+
+
+            /* =====================================================
+               DUPLICATE PAYMENT PROTECTION
+            ===================================================== */
+
+            const {
+                data: existingTransaction,
+                error: existingError
+            } = await supabase
+
+                .from("transactions")
+
+                .select("id")
+
+                .eq(
+                    "reference_number",
+                    referenceNumber
+                )
+
+                .maybeSingle();
+
+
+            if (existingError) {
+
+                console.error(
+                    "ONEKHUSA WEBHOOK: Duplicate check failed:",
+                    existingError
+                );
+
+                return res.status(500).json({
+
+                    success: false,
+
+                    message:
+                        "Unable to verify existing transaction."
+
+                });
+
+            }
+
+
+            if (existingTransaction) {
+
+                console.log(
+                    "ONEKHUSA WEBHOOK: Duplicate payment ignored:",
+                    referenceNumber
+                );
+
+                return res.status(200).json({
+
+                    success: true,
+
+                    message:
+                        "Payment already recorded."
+
+                });
+
+            }
+
+
+            /* =====================================================
+               SAVE TRANSACTION TO SUPABASE
+            ===================================================== */
+
+            const transactionDescription =
+                `${description} | ${sourceInstitution} | ` +
+                `Payer: ${sourceAccountName} | ` +
+                `Source Ref: ${sourceReferenceNumber}`;
+
+
+            const {
+                data: transaction,
+                error: transactionError
+            } = await supabase
+
+                .from("transactions")
+
+                .insert({
+
+                    type:
+                        "ONEKHUSA_PAYMENT",
+
+                    amount:
+                        amount,
+
+                    description:
+                        transactionDescription,
+
+                    status:
+                        "SUCCESS",
+
+                    reference_number:
+                        referenceNumber
+
+                })
+
+                .select()
+
+                .single();
+
+
+            if (transactionError) {
+
+                console.error(
+                    "ONEKHUSA WEBHOOK: Transaction insert failed:",
+                    transactionError
+                );
+
+                return res.status(500).json({
+
+                    success: false,
+
+                    message:
+                        "Payment received but could not be recorded."
+
+                });
+
+            }
+
+
+            /* =====================================================
+               SUCCESS LOG
+            ===================================================== */
+
             console.log(
-                "ONEKHUSA WEBHOOK RECEIVED:",
+                "ONEKHUSA PAYMENT RECORDED SUCCESSFULLY:",
                 {
-                    event,
-                    transactionReferenceNumber:
-                        payload?.transactionReferenceNumber
+                    transactionId:
+                        transaction?.id,
+
+                    amount,
+
+                    referenceNumber,
+
+                    sourceReferenceNumber,
+
+                    sourceAccountName,
+
+                    sourceInstitution
                 }
             );
 
+
+            /* =====================================================
+               RESPONSE
+            ===================================================== */
 
             return res.status(200).json({
 
                 success: true,
 
                 message:
-                    "Webhook received successfully."
+                    "Payment received and recorded successfully.",
+
+                transactionId:
+                    transaction?.id
 
             });
 
