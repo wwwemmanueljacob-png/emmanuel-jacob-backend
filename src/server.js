@@ -65,6 +65,12 @@ app.use(
   })
 );
 
+app.use(
+    "/api/payments/onekhusa/webhook",
+    express.raw({
+        type: "application/json"
+    })
+);
 app.use(express.json());
 
 app.use(testSupabaseRouter);
