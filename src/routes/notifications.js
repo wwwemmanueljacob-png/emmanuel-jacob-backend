@@ -229,6 +229,7 @@ router.get(
 
 router.get(
     "/api/notifications/admin/:adminId",
+    authenticateAdmin,
     async (req, res) => {
 
         try {
