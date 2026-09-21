@@ -32,6 +32,7 @@ import loanDocumentsRouter from "./routes/loanDocuments.js";
 import reportsRouter from "./routes/reports.js";
 import settingsRouter from "./routes/settings.js";
 import notificationsRouter from "./routes/notifications.js";
+import onekhusaWebhookRouter from "./routes/onekhusaWebhook.js";
 import withdrawalsRouter from "./routes/withdrawals.js";
 import adminSchedulesRouter from "./routes/AdminSchedules.js";
 import loanProductsRouter from "./routes/loanProducts.js";
@@ -122,6 +123,7 @@ app.use(loanDocumentsRouter);
 app.use(reportsRouter);
 app.use(settingsRouter);
 app.use(notificationsRouter);
+app.use(onekhusaWebhookRouter);
 app.use(withdrawalsRouter);
 
 app.use(
