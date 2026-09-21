@@ -74,6 +74,7 @@ const allowedStatuses = [
 
 router.get(
   "/api/transactions/customer/:customerId",
+  authenticate,
   async (req, res) => {
 
     try {
