@@ -81,38 +81,16 @@ router.get(
     try {
 
       const requestedCustomerId =
-  Number(req.params.customerId);
+        Number(req.params.customerId);
 
-const authenticatedCustomerId =
-  Number(req.customerId);
+      const authenticatedCustomerId =
+        Number(req.customerId);
 
-if (
-  !Number.isInteger(requestedCustomerId) ||
-  !Number.isInteger(authenticatedCustomerId)
-) {
 
-  return res.status(400).json({
-    success: false,
-    message: "Invalid customer ID"
-  });
-
-}
-
-if (
-  requestedCustomerId !==
-  authenticatedCustomerId
-) {
-
-  return res.status(403).json({
-    success: false,
-    message:
-      "You are not authorized to view these transactions."
-  });
-
-}
-
-const customerId =
-  authenticatedCustomerId;
+      if (
+        !Number.isInteger(requestedCustomerId) ||
+        !Number.isInteger(authenticatedCustomerId)
+      ) {
 
         return res.status(400).json({
           success: false,
@@ -120,6 +98,24 @@ const customerId =
         });
 
       }
+
+
+      if (
+        requestedCustomerId !==
+        authenticatedCustomerId
+      ) {
+
+        return res.status(403).json({
+          success: false,
+          message:
+            "You are not authorized to view these transactions."
+        });
+
+      }
+
+
+      const customerId =
+        authenticatedCustomerId;
 
 
       const { data, error } =
@@ -141,25 +137,39 @@ const customerId =
 
         return res.status(500).json({
           success: false,
-          message: "Unable to load transactions"
+          message:
+            "Unable to load transactions"
         });
 
       }
 
 
       return res.json({
+
         success: true,
-        count: data?.length || 0,
-        transactions: data || []
+
+        count:
+          data?.length || 0,
+
+        transactions:
+          data || []
+
       });
 
     } catch (error) {
 
-      console.error(error);
+      console.error(
+        "Get customer transactions error:",
+        error
+      );
 
       return res.status(500).json({
+
         success: false,
-        message: "Server error"
+
+        message:
+          "Server error"
+
       });
 
     }
