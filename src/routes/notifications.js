@@ -303,7 +303,10 @@ router.get(
    CREATE NOTIFICATION
 ========================================================= */
 
-router.post("/api/notifications", async (req, res) => {
+router.post(
+    "/api/notifications",
+    authenticateAdmin,
+    async (req, res) => {
 
     try {
 
