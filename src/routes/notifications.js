@@ -1,6 +1,7 @@
 import express from "express";
 import { supabase } from "../lib/supabase.js";
 import { authenticate } from "./customerAuth.js";
+import { authenticateAdmin } from "../middleware/adminAuth.js";
 import { createNotification } from "../lib/notifications.js";
 
 const router = express.Router();
