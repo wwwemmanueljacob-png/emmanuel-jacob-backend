@@ -2906,6 +2906,186 @@ if (
 
       }
 
+      /* =====================================
+   CUSTOMER LOAN APPROVAL NOTIFICATION
+===================================== */
+
+try {
+
+  /* GET REPAYMENT SCHEDULE DATES */
+
+  const {
+    data: notificationSchedules,
+    error: notificationScheduleError
+  } = await supabase
+    .from("loan_schedules")
+    .select(`
+      installment_number,
+      due_date,
+      amount_due
+    `)
+    .eq(
+      "loan_id",
+      loan.id
+    )
+    .order(
+      "installment_number",
+      {
+        ascending: true
+      }
+    );
+
+
+  if (notificationScheduleError) {
+
+    console.error(
+      "LOAN NOTIFICATION SCHEDULE ERROR:",
+      notificationScheduleError
+    );
+
+  }
+
+
+  /* FORMAT PAYMENT DATES */
+
+  const paymentDates =
+    (notificationSchedules || [])
+      .map(
+        schedule =>
+          new Date(
+            schedule.due_date
+          ).toLocaleDateString(
+            "en-GB",
+            {
+              day: "2-digit",
+              month: "short",
+              year: "numeric"
+            }
+          )
+      )
+      .join(", ");
+
+
+  /* CREATE CUSTOMER NOTIFICATION */
+
+  const notificationResult =
+    await createNotification({
+
+      customer_id:
+        existingApplication.customer_id,
+
+      admin_id:
+        req.admin.id,
+
+      title:
+        "🎉 Loan Approved",
+
+      message:
+        "Your loan application has been approved.\n\n" +
+
+        "Loan Amount: MWK " +
+        principal.toLocaleString(
+          "en-US",
+          {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          }
+        ) +
+
+        "\nInterest Rate: " +
+        interestRate +
+        "% per month" +
+
+        "\nDuration: " +
+        duration +
+        " month" +
+        (
+          duration === 1
+            ? ""
+            : "s"
+        ) +
+
+        "\nTotal Repayment: MWK " +
+        roundedTotalAmount.toLocaleString(
+          "en-US",
+          {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          }
+        ) +
+
+        "\nMonthly Payment: MWK " +
+        monthlyInstallment.toLocaleString(
+          "en-US",
+          {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          }
+        ) +
+
+        "\nPayment Dates: " +
+        (
+          paymentDates ||
+          "See your loan repayment schedule."
+        ),
+
+      type:
+        "LOAN_APPROVED",
+
+      is_read:
+        false,
+
+      priority:
+        "HIGH",
+
+      sms_required:
+        false,
+
+      reference_type:
+        "LOAN_APPLICATION",
+
+      reference_id:
+        existingApplication.id,
+
+      action:
+        "VIEW_LOAN",
+
+      created_by:
+        req.admin.email
+
+    });
+
+
+  if (!notificationResult.success) {
+
+    console.error(
+      "LOAN APPROVAL NOTIFICATION FAILED:",
+      notificationResult.error
+    );
+
+  } else {
+
+    console.log(
+      "LOAN APPROVAL NOTIFICATION CREATED:",
+      notificationResult.notification.id
+    );
+
+  }
+
+} catch (notificationError) {
+
+  /*
+   * Notification failure must NOT cancel
+   * an already successful loan approval.
+   */
+
+  console.error(
+    "LOAN APPROVAL NOTIFICATION ERROR:",
+    notificationError
+  );
+
+}
+
 
       /* =====================================
          AUDIT LOG
