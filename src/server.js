@@ -2838,19 +2838,22 @@ if (
 
       const approvalUpdate = {
 
-        status:
-          "APPROVED",
+  status:
+    "APPROVED",
 
-        reviewed_at:
-          approvalDate.toISOString(),
+  interest_rate:
+    interestRate,
 
-        reviewed_by:
-          req.admin.id,
+  reviewed_at:
+    approvalDate.toISOString(),
 
-        rejection_reason:
-          null
+  reviewed_by:
+    req.admin.id,
 
-      };
+  rejection_reason:
+    null
+
+};
 
 
       if (
