@@ -3990,17 +3990,30 @@ app.get(
       ===================================== */
 
       const loanDisbursements =
-        loansData.reduce(
-          (
-            sum,
-            loan
-          ) =>
-            sum +
-            money(
-              loan.loan_amount
-            ),
-          0
-        );
+  loansData
+    .filter(
+      loan =>
+        [
+          "active",
+          "disbursed",
+          "running"
+        ].includes(
+          normalize(
+            loan.loan_status
+          )
+        )
+    )
+    .reduce(
+      (
+        sum,
+        loan
+      ) =>
+        sum +
+        money(
+          loan.loan_amount
+        ),
+      0
+    );
 
 
       const adminAvailableBalance =
