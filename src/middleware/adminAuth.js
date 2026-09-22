@@ -93,10 +93,12 @@ export async function authenticateAdmin(
           token
         )
         .eq(
-          "is_active",
-          true
-        )
-        .maybeSingle();
+  "is_active",
+  true
+)
+.limit(1);
+       const session =
+  sessions?.[0] || null;
 
 
       if (sessionError) {
