@@ -2946,24 +2946,47 @@ try {
   }
 
 
-  /* FORMAT PAYMENT DATES */
+    /* FORMAT PAYMENT SCHEDULE */
 
-  const paymentDates =
+  const paymentSchedule =
     (notificationSchedules || [])
       .map(
-        schedule =>
-          new Date(
-            schedule.due_date
-          ).toLocaleDateString(
-            "en-GB",
-            {
-              day: "2-digit",
-              month: "short",
-              year: "numeric"
-            }
-          )
+        schedule => {
+
+          const paymentDate =
+            new Date(
+              schedule.due_date
+            ).toLocaleDateString(
+              "en-GB",
+              {
+                day: "2-digit",
+                month: "short",
+                year: "numeric"
+              }
+            );
+
+          const paymentAmount =
+            Number(
+              schedule.amount_due || 0
+            ).toLocaleString(
+              "en-US",
+              {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              }
+            );
+
+          return (
+            "\n" +
+            "• " +
+            paymentDate +
+            " — MWK " +
+            paymentAmount
+          );
+
+        }
       )
-      .join(", ");
+      .join("");
 
 
   /* CREATE CUSTOMER NOTIFICATION */
@@ -3023,11 +3046,11 @@ try {
           }
         ) +
 
-        "\nPayment Dates: " +
-        (
-          paymentDates ||
-          "See your loan repayment schedule."
-        ),
+        "\nPayment Schedule:" +
+(
+  paymentSchedule ||
+  "\nSee your loan repayment schedule."
+),
 
       type:
         "LOAN_APPROVED",
