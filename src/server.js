@@ -3504,18 +3504,18 @@ app.get(
 
 
       const activeLoans =
-        loansData.filter(
-          loan =>
-            [
-              "active",
-              "approved",
-              "running"
-            ].includes(
-              normalize(
-                loan.loan_status
-              )
-            )
-        ).length;
+  loansData.filter(
+    loan =>
+      [
+        "active",
+        "disbursed",
+        "running"
+      ].includes(
+        normalize(
+          loan.loan_status
+        )
+      )
+  ).length;
 
 
       const completedLoans =
