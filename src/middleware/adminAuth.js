@@ -7,8 +7,6 @@ import { supabase } from "../lib/supabase.js";
 
 export const adminSessions =
   new Map();
-
-
 /* =========================================
    ADMIN AUTHENTICATION MIDDLEWARE
 ========================================= */
@@ -76,7 +74,7 @@ export async function authenticateAdmin(
     try {
 
       const {
-        data: session,
+        data: sessions,
         error: sessionError
       } = await supabase
         .from("admin_sessions")
@@ -93,12 +91,10 @@ export async function authenticateAdmin(
           token
         )
         .eq(
-  "is_active",
-  true
-)
-.limit(1);
-       const session =
-  sessions?.[0] || null;
+          "is_active",
+          true
+        )
+        .limit(1);
 
 
       if (sessionError) {
@@ -124,7 +120,11 @@ export async function authenticateAdmin(
          SESSION NOT FOUND
       ================================= */
 
-      if (!session) {
+      const sessionRecord =
+        sessions?.[0] || null;
+
+
+      if (!sessionRecord) {
 
         return res.status(401).json({
 
@@ -143,8 +143,8 @@ export async function authenticateAdmin(
       ================================= */
 
       if (
-        session.expires_at &&
-        new Date(session.expires_at) <= new Date()
+        sessionRecord.expires_at &&
+        new Date(sessionRecord.expires_at) <= new Date()
       ) {
 
         await supabase
@@ -160,7 +160,7 @@ export async function authenticateAdmin(
           })
           .eq(
             "id",
-            session.id
+            sessionRecord.id
           );
 
         return res.status(401).json({
@@ -197,7 +197,7 @@ export async function authenticateAdmin(
         `)
         .eq(
           "id",
-          session.admin_id
+          sessionRecord.admin_id
         )
         .maybeSingle();
 
@@ -338,4 +338,5 @@ export async function authenticateAdmin(
 
   next();
 
-}
+           }
+
