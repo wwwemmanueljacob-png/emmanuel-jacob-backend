@@ -187,21 +187,22 @@ router.post(
       */
 
       if (
-        !loan_id ||
-        !customer_id ||
-        !amount
-      ) {
+  !loan_id ||
+  !customer_id ||
+  !schedule_id ||
+  !amount
+) {
 
-        return res.status(400).json({
+  return res.status(400).json({
 
-          success: false,
+    success: false,
 
-          message:
-            "Loan ID, customer ID and amount are required"
+    message:
+      "Loan ID, customer ID, schedule ID and amount are required"
 
-        });
+  });
 
-      }
+}
 
 
       const repaymentAmount =
