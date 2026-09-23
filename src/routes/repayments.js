@@ -987,6 +987,98 @@ const repaymentReference =
 
 
       /*
+--------------------------------------------------
+CREATE LOAN REPAYMENT TRANSACTION
+--------------------------------------------------
+*/
+
+const customerBalance =
+  Number(
+    (
+      await supabase
+        .from("customers")
+        .select("balance")
+        .eq("id", customer_id)
+        .maybeSingle()
+    ).data?.balance || 0
+  );
+
+
+const {
+  data: repaymentTransaction,
+  error: repaymentTransactionError
+} = await supabase
+
+  .from("transactions")
+
+  .insert({
+
+    customer_id:
+      customer_id,
+
+    type:
+      "loan_repayment",
+
+    amount:
+      repaymentAmount,
+
+    description:
+      `Loan repayment for loan #${loan_id}`,
+
+    status:
+      "completed",
+
+    balance_before:
+      customerBalance,
+
+    balance_after:
+      customerBalance,
+
+    reference_number:
+      repaymentReference,
+
+    related_loan_id:
+      Number(loan_id),
+
+    related_customer_id:
+      Number(customer_id),
+
+    performed_by:
+      received_by || "system"
+
+  })
+
+  .select("*")
+
+  .single();
+
+
+if (repaymentTransactionError) {
+
+  console.error(
+    "Repayment transaction creation error:",
+    repaymentTransactionError
+  );
+
+  return res.status(500).json({
+
+    success: false,
+
+    message:
+      "Repayment recorded, but transaction history could not be created",
+
+    repayment:
+      repayment,
+
+    loan:
+      updatedLoan
+
+  });
+
+}
+
+
+      /*
       --------------------------------------------------
       SUCCESS
       --------------------------------------------------
