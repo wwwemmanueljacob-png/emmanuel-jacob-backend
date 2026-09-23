@@ -156,10 +156,8 @@ router.get(
 
 
 /*
------------------------------------------------------
 CREATE REPAYMENT
 POST /api/repayments
------------------------------------------------------
 */
 
 router.post(
@@ -182,6 +180,12 @@ router.post(
       } = req.body;
 
 
+      /*
+      --------------------------------------------------
+      VALIDATION
+      --------------------------------------------------
+      */
+
       if (
         !loan_id ||
         !customer_id ||
@@ -189,92 +193,637 @@ router.post(
       ) {
 
         return res.status(400).json({
+
           success: false,
+
           message:
             "Loan ID, customer ID and amount are required"
+
         });
 
       }
 
 
+      const repaymentAmount =
+        Number(amount);
+
+
+      if (
+        !Number.isFinite(
+          repaymentAmount
+        ) ||
+        repaymentAmount <= 0
+      ) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Repayment amount must be greater than zero"
+
+        });
+
+      }
+
+
+      /*
+      --------------------------------------------------
+      GET LOAN
+      --------------------------------------------------
+      */
+
       const {
-        data,
-        error
+        data: loan,
+        error: loanError
       } = await supabase
-        .from("repayments")
-        .insert([
-          {
-            loan_id:
-              loan_id,
 
-            customer_id:
-              customer_id,
+        .from("loans")
 
-            schedule_id:
-              schedule_id || null,
-
-            amount:
-              amount,
-
-            payment_method:
-              payment_method || null,
-
-            reference_number:
-              reference_number || null,
-
-            status:
-              status || "PENDING",
-
-            payment_date:
-              payment_date ||
-              new Date().toISOString(),
-
-            received_by:
-              received_by || null,
-
-            notes:
-              notes || null
-          }
-        ])
         .select("*")
-        .single();
+
+        .eq("id", loan_id)
+
+        .eq("customer_id", customer_id)
+
+        .maybeSingle();
 
 
-      if (error) {
+      if (loanError) {
 
         console.error(
-          "Repayment creation error:",
-          error
+          "Loan lookup error:",
+          loanError
         );
 
         return res.status(500).json({
+
           success: false,
+
           message:
-            "Failed to create repayment",
+            "Failed to retrieve loan",
+
           error:
-            error.message
+            loanError.message
+
         });
 
       }
 
 
+      if (!loan) {
+
+        return res.status(404).json({
+
+          success: false,
+
+          message:
+            "Loan not found for this customer"
+
+        });
+
+      }
+
+
+      /*
+      --------------------------------------------------
+      CHECK LOAN BALANCE
+      --------------------------------------------------
+      */
+
+      const currentRemainingBalance =
+        Number(
+          loan.remaining_balance
+        );
+
+
+      if (
+        !Number.isFinite(
+          currentRemainingBalance
+        )
+      ) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Loan remaining balance is invalid"
+
+        });
+
+      }
+
+
+      if (
+        currentRemainingBalance <= 0
+      ) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "This loan has already been fully paid"
+
+        });
+
+      }
+
+
+      if (
+        repaymentAmount >
+        currentRemainingBalance
+      ) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Repayment amount cannot be greater than the remaining loan balance"
+
+        });
+
+      }
+
+
+      /*
+      --------------------------------------------------
+      CALCULATE NEW LOAN BALANCE
+      --------------------------------------------------
+      */
+
+      const currentAmountPaid =
+        Number(
+          loan.amount_paid || 0
+        );
+
+
+      const newAmountPaid =
+        Number(
+          (
+            currentAmountPaid +
+            repaymentAmount
+          ).toFixed(2)
+        );
+
+
+      const newRemainingBalance =
+        Number(
+          (
+            currentRemainingBalance -
+            repaymentAmount
+          ).toFixed(2)
+        );
+
+
+      const finalLoanStatus =
+        newRemainingBalance <= 0
+          ? "PAID"
+          : "ACTIVE";
+
+
+      const finalPaymentDate =
+        payment_date ||
+        new Date().toISOString();
+
+
+      /*
+      --------------------------------------------------
+      CREATE REPAYMENT RECORD
+      --------------------------------------------------
+      */
+
+      const {
+        data: repayment,
+        error: repaymentError
+      } = await supabase
+
+        .from("repayments")
+
+        .insert([{
+
+          loan_id:
+            loan_id,
+
+          customer_id:
+            customer_id,
+
+          schedule_id:
+            schedule_id || null,
+
+          amount:
+            repaymentAmount,
+
+          payment_method:
+            payment_method || null,
+
+          reference_number:
+            reference_number || null,
+
+          status:
+            status || "COMPLETED",
+
+          payment_date:
+            finalPaymentDate,
+
+          received_by:
+            received_by || null,
+
+          notes:
+            notes || null
+
+        }])
+
+        .select("*")
+
+        .single();
+
+
+      if (repaymentError) {
+
+        console.error(
+          "Repayment creation error:",
+          repaymentError
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Failed to create repayment",
+
+          error:
+            repaymentError.message
+
+        });
+
+      }
+
+
+      /*
+      --------------------------------------------------
+      CREATE LOAN PAYMENT RECORD
+      --------------------------------------------------
+      */
+
+      const {
+        data: loanPayment,
+        error: loanPaymentError
+      } = await supabase
+
+        .from("loan_payments")
+
+        .insert([{
+
+          loan_id:
+            loan_id,
+
+          customer_id:
+            customer_id,
+
+          amount:
+            repaymentAmount,
+
+          payment_method:
+            payment_method || null,
+
+          payment_reference:
+            reference_number || null,
+
+          payment_date:
+            finalPaymentDate,
+
+          received_by:
+            received_by || null,
+
+          notes:
+            notes || null
+
+        }])
+
+        .select("*")
+
+        .single();
+
+
+      if (loanPaymentError) {
+
+        console.error(
+          "Loan payment creation error:",
+          loanPaymentError
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Repayment was created but loan payment record failed",
+
+          repayment:
+            repayment,
+
+          error:
+            loanPaymentError.message
+
+        });
+
+      }
+
+
+      /*
+      --------------------------------------------------
+      UPDATE LOAN SCHEDULE
+      --------------------------------------------------
+      */
+
+      let updatedSchedule = null;
+
+
+      if (schedule_id) {
+
+        const {
+
+          data: schedule,
+
+          error: scheduleError
+
+        } = await supabase
+
+          .from("loan_schedules")
+
+          .select("*")
+
+          .eq("id", schedule_id)
+
+          .eq("loan_id", loan_id)
+
+          .eq("customer_id", customer_id)
+
+          .maybeSingle();
+
+
+        if (scheduleError) {
+
+          console.error(
+            "Schedule lookup error:",
+            scheduleError
+          );
+
+          return res.status(500).json({
+
+            success: false,
+
+            message:
+              "Failed to retrieve repayment schedule",
+
+            error:
+              scheduleError.message
+
+          });
+
+        }
+
+
+        if (!schedule) {
+
+          return res.status(404).json({
+
+            success: false,
+
+            message:
+              "Repayment schedule not found"
+
+          });
+
+        }
+
+
+        const scheduleAmountPaid =
+          Number(
+            schedule.amount_paid || 0
+          );
+
+
+        const scheduleRemaining =
+          Number(
+            schedule.remaining_amount || 0
+          );
+
+
+        const schedulePayment =
+          Math.min(
+            repaymentAmount,
+            scheduleRemaining
+          );
+
+
+        const newScheduleAmountPaid =
+          Number(
+            (
+              scheduleAmountPaid +
+              schedulePayment
+            ).toFixed(2)
+          );
+
+
+        const newScheduleRemaining =
+          Number(
+            (
+              scheduleRemaining -
+              schedulePayment
+            ).toFixed(2)
+          );
+
+
+        const scheduleStatus =
+          newScheduleRemaining <= 0
+            ? "PAID"
+            : "PARTIAL";
+
+
+        const {
+          data: scheduleUpdate,
+          error: scheduleUpdateError
+        } = await supabase
+
+          .from("loan_schedules")
+
+          .update({
+
+            amount_paid:
+              newScheduleAmountPaid,
+
+            remaining_amount:
+              newScheduleRemaining,
+
+            status:
+              scheduleStatus,
+
+            paid_date:
+              newScheduleRemaining <= 0
+                ? finalPaymentDate
+                : null
+
+          })
+
+          .eq("id", schedule_id)
+
+          .select("*")
+
+          .single();
+
+
+        if (scheduleUpdateError) {
+
+          console.error(
+            "Schedule update error:",
+            scheduleUpdateError
+          );
+
+          return res.status(500).json({
+
+            success: false,
+
+            message:
+              "Repayment created but schedule update failed",
+
+            repayment:
+              repayment,
+
+            loanPayment:
+              loanPayment,
+
+            error:
+              scheduleUpdateError.message
+
+          });
+
+        }
+
+
+        updatedSchedule =
+          scheduleUpdate;
+
+      }
+
+
+      /*
+      --------------------------------------------------
+      UPDATE LOAN BALANCE
+      --------------------------------------------------
+      */
+
+      const {
+
+        data: updatedLoan,
+
+        error: loanUpdateError
+
+      } = await supabase
+
+        .from("loans")
+
+        .update({
+
+          amount_paid:
+            newAmountPaid,
+
+          remaining_balance:
+            newRemainingBalance,
+
+          loan_status:
+            finalLoanStatus
+
+        })
+
+        .eq("id", loan_id)
+
+        .eq("customer_id", customer_id)
+
+        .select("*")
+
+        .single();
+
+
+      if (loanUpdateError) {
+
+        console.error(
+          "Loan balance update error:",
+          loanUpdateError
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Repayment was recorded but loan balance update failed",
+
+          repayment:
+            repayment,
+
+          loanPayment:
+            loanPayment,
+
+          error:
+            loanUpdateError.message
+
+        });
+
+      }
+
+
+      /*
+      --------------------------------------------------
+      SUCCESS
+      --------------------------------------------------
+      */
+
       return res.status(201).json({
+
         success: true,
+
         message:
-          "Repayment created successfully",
+          finalLoanStatus === "PAID"
+            ? "Repayment recorded and loan fully paid"
+            : "Repayment recorded successfully",
+
         repayment:
-          data
+          repayment,
+
+        loanPayment:
+          loanPayment,
+
+        schedule:
+          updatedSchedule,
+
+        loan:
+          updatedLoan
+
       });
 
 
     } catch (error) {
 
+      console.error(
+        "Repayment server error:",
+        error
+      );
+
       return res.status(500).json({
+
         success: false,
+
         message:
           "Server error",
+
         error:
           error.message
+
       });
 
     }
