@@ -541,5 +541,101 @@ router.get(
 );
 
 
+/*
+=========================================================
+GET LOGGED-IN CUSTOMER ACTUAL LOANS
+=========================================================
+
+GET
+/api/loans/my-loans
+
+Returns real loan records belonging to
+the currently authenticated customer.
+=========================================================
+*/
+
+router.get(
+  "/api/loans/my-loans",
+  authenticate,
+  async (req, res) => {
+
+    try {
+
+      const {
+        data,
+        error
+      } = await supabase
+        .from("loans")
+        .select(`
+          id,
+          customer_id,
+          created_at,
+          loan_amount,
+          interest_rate,
+          total_amount,
+          amount_paid,
+          remaining_balance,
+          loan_status,
+          application_date,
+          approval_date,
+          due_date
+        `)
+        .eq(
+          "customer_id",
+          req.customer.id
+        )
+        .order(
+          "created_at",
+          {
+            ascending: false
+          }
+        );
+
+
+      if (error) {
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to retrieve your loans.",
+
+          error:
+            error.message
+
+        });
+
+      }
+
+
+      return res.json({
+
+        success: true,
+
+        loans:
+          data || []
+
+      });
+
+    } catch (error) {
+
+      return res.status(500).json({
+
+        success: false,
+
+        message:
+          "Server error while retrieving loans.",
+
+        error:
+          error.message
+
+      });
+
+    }
+
+  }
+);
+
 
 export default router;
