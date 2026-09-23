@@ -389,6 +389,122 @@ router.post(
         payment_date ||
         new Date().toISOString();
 
+      /*
+--------------------------------------------------
+VALIDATE REPAYMENT SCHEDULE
+--------------------------------------------------
+*/
+
+const {
+  data: schedule,
+  error: scheduleLookupError
+} = await supabase
+
+  .from("loan_schedules")
+
+  .select("*")
+
+  .eq("id", schedule_id)
+
+  .eq("loan_id", loan_id)
+
+  .eq("customer_id", customer_id)
+
+  .maybeSingle();
+
+
+if (scheduleLookupError) {
+
+  console.error(
+    "Schedule validation error:",
+    scheduleLookupError
+  );
+
+  return res.status(500).json({
+
+    success: false,
+
+    message:
+      "Failed to validate repayment schedule",
+
+    error:
+      scheduleLookupError.message
+
+  });
+
+}
+
+
+if (!schedule) {
+
+  return res.status(404).json({
+
+    success: false,
+
+    message:
+      "The selected repayment schedule was not found for this loan."
+
+  });
+
+}
+
+
+const scheduleRemainingAmount =
+  Number(
+    schedule.remaining_amount || 0
+  );
+
+
+if (
+  !Number.isFinite(
+    scheduleRemainingAmount
+  )
+) {
+
+  return res.status(400).json({
+
+    success: false,
+
+    message:
+      "The repayment schedule has an invalid remaining amount."
+
+  });
+
+}
+
+
+if (
+  scheduleRemainingAmount <= 0
+) {
+
+  return res.status(400).json({
+
+    success: false,
+
+    message:
+      "This repayment schedule has already been fully paid."
+
+  });
+
+}
+
+
+if (
+  repaymentAmount >
+  scheduleRemainingAmount
+) {
+
+  return res.status(400).json({
+
+    success: false,
+
+    message:
+      "Repayment amount cannot be greater than the remaining amount on this schedule."
+
+  });
+
+}
+
 
       /*
       --------------------------------------------------
@@ -412,7 +528,7 @@ router.post(
             customer_id,
 
           schedule_id:
-            schedule_id || null,
+            schedule_id,
 
           amount:
             repaymentAmount,
