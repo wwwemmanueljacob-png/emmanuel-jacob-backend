@@ -540,7 +540,7 @@ if (
             reference_number || null,
 
           status:
-            status || "COMPLETED",
+            "COMPLETED",
 
           payment_date:
             finalPaymentDate,
