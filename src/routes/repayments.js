@@ -190,15 +190,16 @@ router.post(
   !loan_id ||
   !customer_id ||
   !schedule_id ||
-  !amount
+  !amount ||
+  !reference_number
 ) {
 
   return res.status(400).json({
 
     success: false,
 
-    message:
-      "Loan ID, customer ID, schedule ID and amount are required"
+      message:
+  "Loan ID, customer ID, schedule ID, amount and reference number are required"
 
   });
 
