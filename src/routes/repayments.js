@@ -992,15 +992,52 @@ CREATE LOAN REPAYMENT TRANSACTION
 --------------------------------------------------
 */
 
+const {
+  data: customer,
+  error: customerError
+} = await supabase
+  .from("customers")
+  .select("balance")
+  .eq("id", customer_id)
+  .maybeSingle();
+
+
+if (customerError) {
+
+  console.error(
+    "Customer balance lookup error:",
+    customerError
+  );
+
+  return res.status(500).json({
+
+    success: false,
+
+    message:
+      "Unable to retrieve customer balance"
+
+  });
+
+}
+
+
+if (!customer) {
+
+  return res.status(404).json({
+
+    success: false,
+
+    message:
+      "Customer not found"
+
+  });
+
+}
+
+
 const customerBalance =
   Number(
-    (
-      await supabase
-        .from("customers")
-        .select("balance")
-        .eq("id", customer_id)
-        .maybeSingle()
-    ).data?.balance || 0
+    customer.balance || 0
   );
 
 
@@ -1059,6 +1096,27 @@ if (repaymentTransactionError) {
     "Repayment transaction creation error:",
     repaymentTransactionError
   );
+
+  /*
+  --------------------------------------------------
+  DUPLICATE TRANSACTION REFERENCE
+  --------------------------------------------------
+  */
+
+  if (
+    repaymentTransactionError.code === "23505"
+  ) {
+
+    return res.status(409).json({
+
+      success: false,
+
+      message:
+        "A transaction with this repayment reference already exists."
+
+    });
+
+  }
 
   return res.status(500).json({
 
