@@ -732,10 +732,7 @@ if (
 
 
         const schedulePayment =
-          Math.min(
-            repaymentAmount,
-            scheduleRemaining
-          );
+          repaymentAmount;
 
 
         const newScheduleAmountPaid =
