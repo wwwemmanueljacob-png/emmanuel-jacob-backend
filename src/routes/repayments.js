@@ -634,22 +634,43 @@ const repaymentReference =
 
       if (repaymentError) {
 
-        console.error(
-          "Repayment creation error:",
-          repaymentError
-        );
+  console.error(
+    "Repayment creation error:",
+    repaymentError
+  );
 
-        return res.status(500).json({
+  /*
+  --------------------------------------------------
+  DUPLICATE REPAYMENT REFERENCE
+  --------------------------------------------------
+  */
 
-          success: false,
+  if (
+    repaymentError.code === "23505"
+  ) {
 
-          message:
-            "Failed to create repayment",
+    return res.status(409).json({
 
-          error:
-            repaymentError.message
+      success: false,
 
-        });
+      message:
+        "A repayment with this reference already exists. Please try again."
+
+    });
+
+  }
+
+  return res.status(500).json({
+
+    success: false,
+
+    message:
+      "Failed to create repayment record",
+
+    error:
+      repaymentError.message
+
+  });
 
       }
 
