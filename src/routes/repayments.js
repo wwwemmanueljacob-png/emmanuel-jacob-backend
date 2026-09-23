@@ -682,7 +682,7 @@ const repaymentReference =
             payment_method || null,
 
           payment_reference:
-            reference_number || null,
+            repaymentReference,
 
           payment_date:
             finalPaymentDate,
