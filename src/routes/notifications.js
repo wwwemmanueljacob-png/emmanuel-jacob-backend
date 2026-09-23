@@ -12,7 +12,10 @@ const router = express.Router();
    Admin notification center
 ========================================================= */
 
-router.get("/api/notifications", async (req, res) => {
+router.get(
+    "/api/notifications",
+    authenticateAdmin,
+    async (req, res) => {
 
     try {
 
