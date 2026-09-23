@@ -1211,153 +1211,19 @@ router.put(
   authenticateAdmin,
   async (req, res) => {
 
-    try {
+    return res.status(403).json({
 
-      const { id } =
-        req.params;
+      success: false,
 
+      message:
+        "Repayment editing is disabled. Use a controlled financial adjustment process."
 
-      const {
-        loan_id,
-        customer_id,
-        schedule_id,
-        amount,
-        payment_method,
-        reference_number,
-        status,
-        payment_date,
-        received_by,
-        notes
-      } = req.body;
-
-
-      const updates = {};
-
-
-      if (
-        loan_id !== undefined
-      ) {
-        updates.loan_id =
-          loan_id;
-      }
-
-      if (
-        customer_id !== undefined
-      ) {
-        updates.customer_id =
-          customer_id;
-      }
-
-      if (
-        schedule_id !== undefined
-      ) {
-        updates.schedule_id =
-          schedule_id;
-      }
-
-      if (
-        amount !== undefined
-      ) {
-        updates.amount =
-          amount;
-      }
-
-      if (
-        payment_method !== undefined
-      ) {
-        updates.payment_method =
-          payment_method;
-      }
-
-      if (
-        reference_number !== undefined
-      ) {
-        updates.reference_number =
-          reference_number;
-      }
-
-      if (
-        status !== undefined
-      ) {
-        updates.status =
-          status;
-      }
-
-      if (
-        payment_date !== undefined
-      ) {
-        updates.payment_date =
-          payment_date;
-      }
-
-      if (
-        received_by !== undefined
-      ) {
-        updates.received_by =
-          received_by;
-      }
-
-      if (
-        notes !== undefined
-      ) {
-        updates.notes =
-          notes;
-      }
-
-
-      const {
-        data,
-        error
-      } = await supabase
-        .from("repayments")
-        .update(updates)
-        .eq("id", id)
-        .select("*")
-        .single();
-
-
-      if (error) {
-
-        console.error(
-          "Repayment update error:",
-          error
-        );
-
-        return res.status(500).json({
-          success: false,
-          message:
-            "Failed to update repayment",
-          error:
-            error.message
-        });
-
-      }
-
-
-      return res.json({
-        success: true,
-        message:
-          "Repayment updated successfully",
-        repayment:
-          data
-      });
-
-
-    } catch (error) {
-
-      return res.status(500).json({
-        success: false,
-        message:
-          "Server error",
-        error:
-          error.message
-      });
-
-    }
+    });
 
   }
 );
 
+  
 
 /*
 -----------------------------------------------------
@@ -1369,58 +1235,16 @@ DELETE /api/repayments/:id
 router.delete(
   "/api/repayments/:id",
   authenticateAdmin,
-  async (req, res) => {
+  async (req, res) {
 
-    try {
+    return res.status(403).json({
 
-      const { id } =
-        req.params;
+      success: false,
 
+      message:
+        "Repayment deletion is disabled. Use a controlled financial adjustment process."
 
-      const {
-        error
-      } = await supabase
-        .from("repayments")
-        .delete()
-        .eq("id", id);
-
-
-      if (error) {
-
-        console.error(
-          "Repayment deletion error:",
-          error
-        );
-
-        return res.status(500).json({
-          success: false,
-          message:
-            "Failed to delete repayment",
-          error:
-            error.message
-        });
-
-      }
-
-
-      return res.json({
-        success: true,
-        message:
-          "Repayment deleted successfully"
-      });
-
-
-    } catch (error) {
-
-      return res.status(500).json({
-        success: false,
-        message:
-          "Server error",
-        error:
-          error.message
-      });
-
-    }
+    });
 
   }
 );
