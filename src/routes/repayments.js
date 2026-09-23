@@ -1,5 +1,70 @@
 import express from "express";
+import crypto from "crypto";
 import { supabase } from "../lib/supabase.js";
+import { authenticate } from "./customerAuth.js";
+
+const router = express.Router();
+
+/*
+=====================================================
+GENERATE REPAYMENT REFERENCE
+=====================================================
+*/
+
+function generateRepaymentReference() {
+
+  const random =
+    crypto
+      .randomBytes(6)
+      .toString("hex")
+      .toUpperCase();
+
+  return `JCOB-TXN-${Date.now()}-${random}`;
+
+}
+
+/*
+=====================================================
+JAY C O B FINANCIAL SERVICES
+TRANSACTIONS API
+
+Supabase table:
+
+transactions
+- id
+- created_at
+- customer_id
+- type
+- amount
+- description
+- status
+- balance_before
+- balance_after
+- reference
+- related_loan_id
+- related_customer_id
+- performed_by
+=====================================================
+*/
+
+
+/* =====================================================
+   GENERATE TRANSACTION REFERENCE
+===================================================== */
+
+function generateReference() {
+  const random = crypto
+    .randomBytes(6)
+    .toString("hex")
+    .toUpperCase();
+
+  return `JCOB-TXN-${Date.now()}-${random}`;
+}
+
+
+/* =====================================================
+   ALLOWED TRANSACTION TYPES
+===================================================== */
 
 const router = express.Router();
 
