@@ -82,8 +82,9 @@ GET /api/repayments
 -----------------------------------------------------
 */
 
-router.get(
+router.post(
   "/api/repayments",
+  authenticate,
   async (req, res) => {
 
     try {
@@ -232,18 +233,20 @@ router.post(
     try {
 
       const {
-        loan_id,
-        customer_id,
-        schedule_id,
-        amount,
-        payment_method,
-        reference_number,
-        status,
-        payment_date,
-        received_by,
-        notes
-      } = req.body;
+  loan_id,
+  schedule_id,
+  amount,
+  payment_method,
+  reference_number,
+  status,
+  payment_date,
+  received_by,
+  notes
+} = req.body;
 
+
+const customer_id =
+  Number(req.customerId);
 
       /*
       --------------------------------------------------
@@ -1083,7 +1086,7 @@ const {
       Number(customer_id),
 
     performed_by:
-      received_by || "system"
+      "system"
 
   })
 
