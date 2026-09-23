@@ -775,73 +775,71 @@ router.post(
 
 
       /* =====================================
-   13. CREATE CUSTOMER DISBURSEMENT NOTIFICATION
-===================================== */
+         13. CREATE CUSTOMER DISBURSEMENT NOTIFICATION
+      ===================================== */
 
-await notifyCustomer({
+      await notifyCustomer({
 
-  customer_id:
-    customerId,
+        customer_id:
+          customerId,
 
-  title:
-    "Loan Disbursed",
+        title:
+          "Loan Disbursed",
 
-  message:
-    `Your loan of MWK ${principal.toFixed(2)} has been successfully disbursed. Loan #${loan.id} is now active.`,
+        message:
+          `Your loan of MWK ${principal.toFixed(2)} has been successfully disbursed. Loan #${loan.id} is now active.`,
 
-  type:
-    "LOAN_DISBURSEMENT",
+        type:
+          "LOAN_DISBURSEMENT",
 
-  priority:
-    "NORMAL",
+        priority:
+          "NORMAL",
 
-  reference_type:
-    "loan",
+        reference_type:
+          "loan",
 
-  reference_id:
-    Number(loan.id),
+        reference_id:
+          Number(loan.id),
 
-  action:
-    "VIEW_LOAN"
+        action:
+          "VIEW_LOAN"
 
-});
-
-
-/* =====================================
-   14. CREATE ADMIN DISBURSEMENT NOTIFICATION
-===================================== */
-
-await notifyAdmin({
-
-  title:
-    "Loan Disbursement",
-
-  message:
-    `Customer #${customerId} received MWK ${principal.toFixed(2)} for loan #${loan.id}.`,
-
-  type:
-    "LOAN_DISBURSEMENT",
-
-  priority:
-    "NORMAL",
-
-  reference_type:
-    "loan",
-
-  reference_id:
-    Number(loan.id),
-
-  action:
-    "VIEW_LOAN"
-
-});
+      });
 
 
-/* =====================================
-   15. SUCCESS
-===================================== */
+      /* =====================================
+         14. CREATE ADMIN DISBURSEMENT NOTIFICATION
+      ===================================== */
 
-return res.json({
+      await notifyAdmin({
+
+        title:
+          "Loan Disbursement",
+
+        message:
+          `Customer #${customerId} received MWK ${principal.toFixed(2)} for loan #${loan.id}.`,
+
+        type:
+          "LOAN_DISBURSEMENT",
+
+        priority:
+          "NORMAL",
+
+        reference_type:
+          "loan",
+
+        reference_id:
+          Number(loan.id),
+
+        action:
+          "VIEW_LOAN"
+
+      });
+
+
+      /* =====================================
+         15. SUCCESS
+      ===================================== */
 
       return res.json({
 
