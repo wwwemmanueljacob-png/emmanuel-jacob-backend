@@ -4,8 +4,12 @@ import crypto from "crypto";
 import { supabase } from "../lib/supabase.js";
 import { authenticateAdmin } from "../middleware/adminAuth.js";
 
-const router = express.Router();
+import {
+  notifyCustomer,
+  notifyAdmin
+} from "../lib/notifications.js";
 
+const router = express.Router();
 
 /* =========================================
    GET ALL ACTIVE / APPROVED / DISBURSED LOANS
