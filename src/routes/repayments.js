@@ -255,8 +255,7 @@ router.post(
   !loan_id ||
   !customer_id ||
   !schedule_id ||
-  !amount ||
-  !reference_number
+  !amount
 ) {
 
   return res.status(400).json({
@@ -264,7 +263,7 @@ router.post(
     success: false,
 
       message:
-  "Loan ID, customer ID, schedule ID, amount and reference number are required"
+  "Loan ID, customer ID, schedule ID and amount are required"
 
   });
 
@@ -570,6 +569,15 @@ if (
   });
 
 }
+      
+ /*
+--------------------------------------------------
+GENERATE REPAYMENT REFERENCE
+--------------------------------------------------
+*/
+
+const repaymentReference =
+  generateRepaymentReference();
 
 
       /*
