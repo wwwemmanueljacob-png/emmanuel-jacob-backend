@@ -708,8 +708,14 @@ router.post(
           payment_date:
             finalPaymentDate,
 
+          /*
+          Customer-initiated repayment.
+          received_by references public.admins.id,
+          so no admin is assigned here.
+          */
+
           received_by:
-            "system",
+            null,
 
           notes:
             notes || null
@@ -802,8 +808,14 @@ router.post(
           payment_date:
             finalPaymentDate,
 
+          /*
+          Customer-initiated repayment.
+          received_by references public.admins.id,
+          so no admin is assigned here.
+          */
+
           received_by:
-            "system",
+            null,
 
           notes:
             notes || null
