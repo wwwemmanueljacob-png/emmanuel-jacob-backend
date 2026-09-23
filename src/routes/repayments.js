@@ -1244,12 +1244,45 @@ CREATE CUSTOMER REPAYMENT NOTIFICATION
 --------------------------------------------------
 */
 
-await notifyCustomer(
-  customer_id,
-  finalLoanStatus === "PAID"
-    ? `Loan repayment of MWK ${repaymentAmount.toFixed(2)} received successfully. Your loan #${loan_id} has been fully paid.`
-    : `Loan repayment of MWK ${repaymentAmount.toFixed(2)} received successfully for loan #${loan_id}. Your remaining loan balance is MWK ${newRemainingBalance.toFixed(2)}.`
-);
+await notifyCustomer({
+
+  customer_id:
+
+    customer_id,
+
+  title:
+
+    finalLoanStatus === "PAID"
+      ? "Loan Fully Repaid"
+      : "Loan Repayment Received",
+
+  message:
+
+    finalLoanStatus === "PAID"
+      ? `Loan repayment of MWK ${repaymentAmount.toFixed(2)} received successfully. Your loan #${loan_id} has been fully paid.`
+      : `Loan repayment of MWK ${repaymentAmount.toFixed(2)} received successfully for loan #${loan_id}. Your remaining loan balance is MWK ${newRemainingBalance.toFixed(2)}.`,
+
+  type:
+
+    "LOAN_REPAYMENT",
+
+  priority:
+
+    "NORMAL",
+
+  reference_type:
+
+    "loan",
+
+  reference_id:
+
+    Number(loan_id),
+
+  action:
+
+    "VIEW_LOAN"
+
+});
 
       /*
 --------------------------------------------------
@@ -1257,9 +1290,30 @@ CREATE ADMIN REPAYMENT NOTIFICATION
 --------------------------------------------------
 */
 
-await notifyAdmin(
-  `Customer #${customer_id} made a loan repayment of MWK ${repaymentAmount.toFixed(2)} for loan #${loan_id}.`
-);
+await notifyAdmin({
+
+  title:
+    "Loan Repayment Received",
+
+  message:
+    `Customer #${customer_id} made a loan repayment of MWK ${repaymentAmount.toFixed(2)} for loan #${loan_id}.`,
+
+  type:
+    "LOAN_REPAYMENT",
+
+  priority:
+    "NORMAL",
+
+  reference_type:
+    "loan",
+
+  reference_id:
+    Number(loan_id),
+
+  action:
+    "VIEW_LOAN"
+
+});
 
 
       /*
