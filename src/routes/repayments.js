@@ -880,6 +880,8 @@ const repaymentReference =
           })
 
           .eq("id", schedule_id)
+          .eq("loan_id", loan_id)
+          .eq("customer_id", customer_id)
 
           .select("*")
 
