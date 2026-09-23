@@ -273,8 +273,10 @@ const customer_id =
 }
 
 
-      const repaymentAmount =
-        Number(amount);
+const repaymentAmount =
+  Number(
+    Number(amount).toFixed(2)
+  );
 
 
       if (
