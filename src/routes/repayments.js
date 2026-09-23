@@ -1368,6 +1368,7 @@ DELETE /api/repayments/:id
 
 router.delete(
   "/api/repayments/:id",
+  authenticateAdmin,
   async (req, res) => {
 
     try {
