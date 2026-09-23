@@ -2,6 +2,7 @@ import express from "express";
 import crypto from "crypto";
 import { supabase } from "../lib/supabase.js";
 import { authenticate } from "./customerAuth.js";
+import { authenticateAdmin } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -1207,6 +1208,7 @@ PUT /api/repayments/:id
 
 router.put(
   "/api/repayments/:id",
+  authenticateAdmin,
   async (req, res) => {
 
     try {
