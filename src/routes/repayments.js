@@ -625,7 +625,7 @@ const repaymentReference =
             finalPaymentDate,
 
           received_by:
-            received_by || null,
+            "system",
 
           notes:
             notes || null
@@ -714,7 +714,7 @@ const repaymentReference =
             finalPaymentDate,
 
           received_by:
-            received_by || null,
+            "system",
 
           notes:
             notes || null
