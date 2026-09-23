@@ -3,6 +3,11 @@ import crypto from "crypto";
 
 import { supabase } from "../lib/supabase.js";
 
+import {
+  notifyCustomer,
+  notifyAdmin
+} from "../lib/notifications.js";
+
 import { authenticate } from "./customerAuth.js";
 
 import { authenticateAdmin } from "../middleware/adminAuth.js";
@@ -1232,6 +1237,29 @@ router.post(
         });
 
       }
+
+      /*
+--------------------------------------------------
+CREATE CUSTOMER REPAYMENT NOTIFICATION
+--------------------------------------------------
+*/
+
+await notifyCustomer(
+  customer_id,
+  finalLoanStatus === "PAID"
+    ? `Loan repayment of MWK ${repaymentAmount.toFixed(2)} received successfully. Your loan #${loan_id} has been fully paid.`
+    : `Loan repayment of MWK ${repaymentAmount.toFixed(2)} received successfully for loan #${loan_id}. Your remaining loan balance is MWK ${newRemainingBalance.toFixed(2)}.`
+);
+
+      /*
+--------------------------------------------------
+CREATE ADMIN REPAYMENT NOTIFICATION
+--------------------------------------------------
+*/
+
+await notifyAdmin(
+  `Customer #${customer_id} made a loan repayment of MWK ${repaymentAmount.toFixed(2)} for loan #${loan_id}.`
+);
 
 
       /*
