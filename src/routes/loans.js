@@ -550,7 +550,8 @@ GET
 /api/loans/my-loans
 
 Returns real loan records belonging to
-the currently authenticated customer.
+the currently authenticated customer,
+including repayment schedules.
 =========================================================
 */
 
@@ -561,9 +562,13 @@ router.get(
 
     try {
 
+      /* =================================================
+         GET CUSTOMER LOANS
+      ================================================= */
+
       const {
-        data,
-        error
+        data: loans,
+        error: loansError
       } = await supabase
         .from("loans")
         .select(`
@@ -592,7 +597,7 @@ router.get(
         );
 
 
-      if (error) {
+      if (loansError) {
 
         return res.status(500).json({
 
@@ -602,19 +607,144 @@ router.get(
             "Unable to retrieve your loans.",
 
           error:
-            error.message
+            loansError.message
 
         });
 
       }
 
 
+      const customerLoans =
+        loans || [];
+
+
+      /* =================================================
+         NO LOANS
+      ================================================= */
+
+      if (
+        customerLoans.length === 0
+      ) {
+
+        return res.json({
+
+          success: true,
+
+          loans: []
+
+        });
+
+      }
+
+
+      /* =================================================
+         GET REPAYMENT SCHEDULES
+      ================================================= */
+
+      const loanIds =
+        customerLoans.map(
+          loan =>
+            Number(loan.id)
+        );
+
+
+      const {
+        data: schedules,
+        error: schedulesError
+      } = await supabase
+        .from("loan_schedules")
+        .select(`
+          id,
+          loan_id,
+          customer_id,
+          installment_number,
+          due_date,
+          amount_due,
+          amount_paid,
+          remaining_amount,
+          status,
+          paid_date
+        `)
+        .eq(
+          "customer_id",
+          req.customer.id
+        )
+        .in(
+          "loan_id",
+          loanIds
+        )
+        .order(
+          "installment_number",
+          {
+            ascending: true
+          }
+        );
+
+
+      if (schedulesError) {
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Unable to retrieve your repayment schedules.",
+
+          error:
+            schedulesError.message
+
+        });
+
+      }
+
+
+      /* =================================================
+         ATTACH SCHEDULES TO EACH LOAN
+      ================================================= */
+
+      const customerSchedules =
+        schedules || [];
+
+
+      const loansWithSchedules =
+        customerLoans.map(
+          loan => {
+
+            const loanSchedules =
+              customerSchedules.filter(
+                schedule =>
+                  Number(
+                    schedule.loan_id
+                  ) ===
+                  Number(
+                    loan.id
+                  )
+              );
+
+
+            return {
+
+              ...loan,
+
+              schedules:
+                loanSchedules
+
+            };
+
+          }
+        );
+
+
+      /* =================================================
+         RETURN LOANS
+      ================================================= */
+
       return res.json({
 
         success: true,
 
         loans:
-          data || []
+          loansWithSchedules
 
       });
 
