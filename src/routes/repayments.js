@@ -608,13 +608,13 @@ const repaymentReference =
             repaymentAmount,
 
           payment_method:
-            payment_method || null,
+             payment_method || null,
 
           reference_number:
-            reference_number || null,
+             repaymentReference,
 
           status:
-            "COMPLETED",
+             "COMPLETED",
 
           payment_date:
             finalPaymentDate,
