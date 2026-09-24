@@ -4202,32 +4202,35 @@ app.get(
          ADMIN FINANCIAL BALANCE
       ===================================== */
 
-      const loanDisbursements =
-  loansData
-    .filter(
-      loan =>
-        [
-          "active",
-          "disbursed",
-          "running"
-        ].includes(
-          normalize(
-            loan.loan_status
-          )
+      const disbursedLoans =
+  loansData.filter(
+    loan =>
+      [
+        "active",
+        "disbursed",
+        "running"
+      ].includes(
+        normalize(
+          loan.loan_status
         )
-    )
-    .reduce(
-      (
-        sum,
-        loan
-      ) =>
-        sum +
-        money(
-          loan.loan_amount
-        ),
-      0
-    );
+      )
+  );
 
+const loanDisbursementCount =
+  disbursedLoans.length;
+
+const loanDisbursements =
+  disbursedLoans.reduce(
+    (
+      sum,
+      loan
+    ) =>
+      sum +
+      money(
+        loan.loan_amount
+      ),
+    0
+  );
 
       const adminAvailableBalance =
         completedDepositAmount +
