@@ -1,6 +1,11 @@
 import express from "express";
 import { supabase } from "../lib/supabase.js";
 
+import {
+  notifyCustomer,
+  notifyAdmin
+} from "../lib/notifications.js";
+
 const router = express.Router();
 
 /* =========================================
@@ -238,6 +243,68 @@ router.post("/", async (req, res) => {
     /* -------------------------------
        SUCCESS
     -------------------------------- */
+
+     /* -------------------------------
+   CREATE CUSTOMER DEPOSIT NOTIFICATION
+-------------------------------- */
+
+await notifyCustomer({
+
+  customer_id:
+    customer_id,
+
+  title:
+    "Deposit Received",
+
+  message:
+    `Your deposit of MWK ${depositAmount.toFixed(2)} has been received successfully. Your new account balance is MWK ${newBalance.toFixed(2)}.`,
+
+  type:
+    "DEPOSIT",
+
+  priority:
+    "NORMAL",
+
+  reference_type:
+    "deposit",
+
+  reference_id:
+    Number(deposit.id),
+
+  action:
+    "VIEW_TRANSACTION"
+
+});
+
+
+/* -------------------------------
+   CREATE ADMIN DEPOSIT NOTIFICATION
+-------------------------------- */
+
+await notifyAdmin({
+
+  title:
+    "Deposit Received",
+
+  message:
+    `Customer #${customer_id} deposited MWK ${depositAmount.toFixed(2)}. New balance: MWK ${newBalance.toFixed(2)}.`,
+
+  type:
+    "DEPOSIT",
+
+  priority:
+    "NORMAL",
+
+  reference_type:
+    "deposit",
+
+  reference_id:
+    Number(deposit.id),
+
+  action:
+    "VIEW_TRANSACTION"
+
+});
 
     res.status(201).json({
       success: true,
