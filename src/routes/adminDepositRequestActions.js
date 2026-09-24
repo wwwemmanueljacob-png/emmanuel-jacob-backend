@@ -147,331 +147,355 @@ router.put(
 
 
             /*
--------------------------------------------------
-PROCESS DEPOSIT REQUEST
--------------------------------------------------
-*/
+            -------------------------------------------------
+            PROCESS REJECTION
+            -------------------------------------------------
+            */
 
-if (normalizedStatus === "REJECTED") {
+            if (normalizedStatus === "REJECTED") {
 
-    const updateData = {
+                const updateData = {
 
-        status: "REJECTED",
+                    status:
+                        "REJECTED",
 
-        processed_by:
-            req.admin?.id || null,
+                    processed_by:
+                        req.admin?.id || null,
 
-        processed_at:
-            new Date().toISOString(),
+                    processed_at:
+                        new Date().toISOString(),
 
-        rejection_reason:
-            String(
-                rejection_reason
-            ).trim()
+                    rejection_reason:
+                        String(
+                            rejection_reason
+                        ).trim()
 
-    };
+                };
 
 
-    const {
-        data: updatedRequest,
-        error: updateError
-    } = await supabase
+                const {
+                    data: updatedRequest,
+                    error: updateError
+                } = await supabase
 
-        .from("deposit_requests")
+                    .from("deposit_requests")
 
-        .update(updateData)
+                    .update(updateData)
 
-        .eq("id", requestId)
+                    .eq("id", requestId)
 
-        .eq("status", "PENDING")
+                    .eq("status", "PENDING")
 
-        .select()
+                    .select()
 
-        .single();
+                    .single();
 
 
-    if (updateError) {
+                if (updateError) {
 
-        return res.status(500).json({
+                    return res.status(500).json({
 
-            success: false,
+                        success: false,
 
-            message:
-                "Unable to reject deposit request.",
+                        message:
+                            "Unable to reject deposit request.",
 
-            error:
-                updateError.message
+                        error:
+                            updateError.message
 
-        });
+                    });
 
-    }
+                }
 
 
-    return res.json({
+                return res.json({
 
-        success: true,
+                    success: true,
 
-        message:
-            "Deposit request rejected successfully.",
+                    message:
+                        "Deposit request rejected successfully.",
 
-        depositRequest:
-            updatedRequest
+                    depositRequest:
+                        updatedRequest
 
-    });
+                });
 
-}
+            }
 
 
-/*
--------------------------------------------------
-APPROVE DEPOSIT REQUEST
--------------------------------------------------
-*/
+            /*
+            -------------------------------------------------
+            APPROVE DEPOSIT REQUEST
+            -------------------------------------------------
+            */
 
-const customerId =
-    Number(
-        depositRequest.customer_id
-    );
+            const customerId =
+                Number(
+                    depositRequest.customer_id
+                );
 
-const depositAmount =
-    Number(
-        depositRequest.amount
-    );
+            const depositAmount =
+                Number(
+                    depositRequest.amount
+                );
 
 
-if (
-    !Number.isFinite(customerId) ||
-    customerId <= 0
-) {
+            if (
+                !Number.isFinite(customerId) ||
+                customerId <= 0
+            ) {
 
-    return res.status(400).json({
+                return res.status(400).json({
 
-        success: false,
+                    success: false,
 
-        message:
-            "Invalid customer ID."
+                    message:
+                        "Invalid customer ID."
 
-    });
+                });
 
-}
+            }
 
 
-if (
-    !Number.isFinite(depositAmount) ||
-    depositAmount <= 0
-) {
+            if (
+                !Number.isFinite(depositAmount) ||
+                depositAmount <= 0
+            ) {
 
-    return res.status(400).json({
+                return res.status(400).json({
 
-        success: false,
+                    success: false,
 
-        message:
-            "Invalid deposit amount."
+                    message:
+                        "Invalid deposit amount."
 
-    });
+                });
 
-}
+            }
 
 
-/*
--------------------------------------------------
-PROCESS APPROVAL ATOMICALLY
--------------------------------------------------
-*/
+            /*
+            -------------------------------------------------
+            PROCESS APPROVAL ATOMICALLY
+            -------------------------------------------------
+            */
 
-const {
-    data: approvalResult,
-    error: approvalError
-} = await supabase.rpc(
-    "approve_deposit_request",
-    {
-        p_request_id:
-            Number(requestId),
+            const {
+                data: approvalResult,
+                error: approvalError
+            } = await supabase.rpc(
+                "approve_deposit_request",
+                {
+                    p_request_id:
+                        Number(requestId),
 
-        p_admin_id:
-            String(
-                req.admin?.id || ""
-            )
-    }
-);
+                    p_admin_id:
+                        String(
+                            req.admin?.id || ""
+                        )
+                }
+            );
 
 
-if (approvalError) {
+            if (approvalError) {
 
-    console.error(
-        "APPROVE DEPOSIT REQUEST RPC ERROR:",
-        approvalError
-    );
+                console.error(
+                    "APPROVE DEPOSIT REQUEST RPC ERROR:",
+                    approvalError
+                );
 
-    return res.status(500).json({
+                return res.status(500).json({
 
-        success: false,
+                    success: false,
 
-        message:
-            approvalError.message ||
-            "Unable to approve deposit request.",
+                    message:
+                        approvalError.message ||
+                        "Unable to approve deposit request.",
 
-        error:
-            approvalError.message
+                    error:
+                        approvalError.message
 
-    });
+                });
 
-}
+            }
 
 
-if (
-    !approvalResult ||
-    approvalResult.success !== true
-) {
+            if (
+                !approvalResult ||
+                approvalResult.success !== true
+            ) {
 
-    return res.status(500).json({
+                return res.status(500).json({
 
-        success: false,
+                    success: false,
 
-        message:
-            approvalResult?.message ||
-            "Unable to approve deposit request."
+                    message:
+                        approvalResult?.message ||
+                        "Unable to approve deposit request."
 
-    });
+                });
 
-}
+            }
 
 
-/*
--------------------------------------------------
-GET PROCESSED RESULTS
--------------------------------------------------
-*/
+            /*
+            -------------------------------------------------
+            GET PROCESSED RESULTS
+            -------------------------------------------------
+            */
 
-const deposit =
-    approvalResult.deposit;
+            const deposit =
+                approvalResult.deposit;
 
-const transaction =
-    approvalResult.transaction;
+            const transaction =
+                approvalResult.transaction;
 
-const updatedRequest =
-    approvalResult.deposit_request;
+            const updatedRequest =
+                approvalResult.deposit_request;
 
-const updatedCustomer =
-    approvalResult.customer;
+            const updatedCustomer =
+                approvalResult.customer;
 
 
-/*
--------------------------------------------------
-VERIFY FINANCIAL PROCESSING
--------------------------------------------------
-*/
+            /*
+            -------------------------------------------------
+            GET NEW CUSTOMER BALANCE
+            -------------------------------------------------
+            */
 
-if (
-    !deposit ||
-    !transaction ||
-    !updatedRequest ||
-    !updatedCustomer
-) {
+            const newBalance =
+                Number(
+                    updatedCustomer.balance || 0
+                );
 
-    console.error(
-        "APPROVE DEPOSIT REQUEST INCOMPLETE RESULT:",
-        approvalResult
-    );
 
-    return res.status(500).json({
+            /*
+            -------------------------------------------------
+            VERIFY FINANCIAL PROCESSING
+            -------------------------------------------------
+            */
 
-        success: false,
+            if (
+                !deposit ||
+                !transaction ||
+                !updatedRequest ||
+                !updatedCustomer
+            ) {
 
-        message:
-            "Deposit approval returned an incomplete result."
+                console.error(
+                    "APPROVE DEPOSIT REQUEST INCOMPLETE RESULT:",
+                    approvalResult
+                );
 
-    });
+                return res.status(500).json({
 
-}
+                    success: false,
 
-/*
--------------------------------------------------
-CUSTOMER NOTIFICATION
--------------------------------------------------
-*/
+                    message:
+                        "Deposit approval returned an incomplete result."
 
-await notifyCustomer({
+                });
 
-    customer_id:
-        customerId,
+            }
 
-    title:
-        "Deposit Approved",
 
-    message:
-        `Your deposit of MWK ${depositAmount.toFixed(2)} has been approved. Your new account balance is MWK ${newBalance.toFixed(2)}.`,
+            /*
+            -------------------------------------------------
+            CUSTOMER NOTIFICATION
+            -------------------------------------------------
+            */
 
-    type:
-        "DEPOSIT",
+            await notifyCustomer({
 
-    priority:
-        "NORMAL",
+                customer_id:
+                    customerId,
 
-    reference_type:
-        "deposit",
+                title:
+                    "Deposit Approved",
 
-    reference_id:
-        Number(deposit.id),
+                message:
+                    `Your deposit of MWK ${depositAmount.toFixed(2)} has been approved. Your new account balance is MWK ${newBalance.toFixed(2)}.`,
 
-    action:
-        "VIEW_TRANSACTION"
+                type:
+                    "DEPOSIT",
 
-});
+                priority:
+                    "NORMAL",
 
+                reference_type:
+                    "deposit",
 
-/*
--------------------------------------------------
-ADMIN NOTIFICATION
--------------------------------------------------
-*/
+                reference_id:
+                    Number(
+                        deposit.id
+                    ),
 
-await notifyAdmin({
+                action:
+                    "VIEW_TRANSACTION"
 
-    title:
-        "Deposit Approved",
+            });
 
-    message:
-        `Customer #${customerId} deposit of MWK ${depositAmount.toFixed(2)} was approved. New balance: MWK ${newBalance.toFixed(2)}.`,
 
-    type:
-        "DEPOSIT",
+            /*
+            -------------------------------------------------
+            ADMIN NOTIFICATION
+            -------------------------------------------------
+            */
 
-    priority:
-        "NORMAL",
+            await notifyAdmin({
 
-    reference_type:
-        "deposit",
+                title:
+                    "Deposit Approved",
 
-    reference_id:
-        Number(deposit.id),
+                message:
+                    `Customer #${customerId} deposit of MWK ${depositAmount.toFixed(2)} was approved. New balance: MWK ${newBalance.toFixed(2)}.`,
 
-    action:
-        "VIEW_TRANSACTION"
+                type:
+                    "DEPOSIT",
 
-});
+                priority:
+                    "NORMAL",
 
+                reference_type:
+                    "deposit",
 
-return res.json({
+                reference_id:
+                    Number(
+                        deposit.id
+                    ),
 
-    success: true,
+                action:
+                    "VIEW_TRANSACTION"
 
-    message:
-        "Deposit request approved and processed successfully.",
+            });
 
-    depositRequest:
-        updatedRequest,
 
-    deposit:
-        deposit,
+            /*
+            -------------------------------------------------
+            SUCCESS RESPONSE
+            -------------------------------------------------
+            */
 
-    transaction:
-        transaction,
+            return res.json({
 
-    customer:
-        updatedCustomer
+                success: true,
 
-});
+                message:
+                    "Deposit request approved and processed successfully.",
+
+                depositRequest:
+                    updatedRequest,
+
+                deposit:
+                    deposit,
+
+                transaction:
+                    transaction,
+
+                customer:
+                    updatedCustomer
+
+            });
 
 
         } catch (error) {
