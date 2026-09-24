@@ -37,6 +37,7 @@ import onekhusaWebhookRouter from "./routes/onekhusaWebhook.js";
 import withdrawalsRouter from "./routes/withdrawals.js";
 import customerDepositsRouter from "./routes/customerDeposits.js";
 import adminDepositRequestsRouter from "./routes/adminDepositRequests.js";
+import adminDepositRequestActionsRouter from "./routes/adminDepositRequestActions.js";
 import adminSchedulesRouter from "./routes/AdminSchedules.js";
 import loanProductsRouter from "./routes/loanProducts.js";
 
@@ -136,6 +137,7 @@ app.use(onekhusaWebhookRouter);
 app.use(withdrawalsRouter);
 app.use(customerDepositsRouter);
 app.use(adminDepositRequestsRouter);
+app.use(adminDepositRequestActionsRouter);
 
 app.use(
   "/api/admin/schedules",
