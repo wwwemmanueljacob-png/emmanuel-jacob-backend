@@ -275,37 +275,62 @@ if (
 
 /*
 -------------------------------------------------
-GET CUSTOMER
+PROCESS APPROVAL ATOMICALLY
 -------------------------------------------------
 */
 
 const {
-    data: customer,
-    error: customerError
-} = await supabase
+    data: approvalResult,
+    error: approvalError
+} = await supabase.rpc(
+    "approve_deposit_request",
+    {
+        p_request_id:
+            Number(requestId),
 
-    .from("customers")
+        p_admin_id:
+            String(
+                req.admin?.id || ""
+            )
+    }
+);
 
-    .select(
-        "id, balance, account_status"
-    )
 
-    .eq("id", customerId)
+if (approvalError) {
 
-    .single();
+    console.error(
+        "APPROVE DEPOSIT REQUEST RPC ERROR:",
+        approvalError
+    );
+
+    return res.status(500).json({
+
+        success: false,
+
+        message:
+            approvalError.message ||
+            "Unable to approve deposit request.",
+
+        error:
+            approvalError.message
+
+    });
+
+}
 
 
 if (
-    customerError ||
-    !customer
+    !approvalResult ||
+    approvalResult.success !== true
 ) {
 
-    return res.status(404).json({
+    return res.status(500).json({
 
         success: false,
 
         message:
-            "Customer not found."
+            approvalResult?.message ||
+            "Unable to approve deposit request."
 
     });
 
@@ -314,75 +339,39 @@ if (
 
 /*
 -------------------------------------------------
-CALCULATE NEW BALANCE
+GET PROCESSED RESULTS
 -------------------------------------------------
 */
 
-const currentBalance =
-    Number(
-        customer.balance || 0
-    );
+const deposit =
+    approvalResult.deposit;
 
-const newBalance =
-    currentBalance +
-    depositAmount;
+const transaction =
+    approvalResult.transaction;
+
+const updatedRequest =
+    approvalResult.deposit_request;
+
+const updatedCustomer =
+    approvalResult.customer;
 
 
 /*
 -------------------------------------------------
-CREATE DEPOSIT
+VERIFY FINANCIAL PROCESSING
 -------------------------------------------------
 */
 
-const {
-    data: deposit,
-    error: depositError
-} = await supabase
-
-    .from("deposits")
-
-    .insert({
-
-        customer_id:
-            customerId,
-
-        account_id:
-            null,
-
-        amount:
-            depositAmount,
-
-        payment_method:
-            depositRequest.payment_method,
-
-        reference_number:
-            depositRequest.reference_number,
-
-        status:
-            "COMPLETED",
-
-        description:
-            depositRequest.description ||
-            "Customer deposit request",
-
-        processed_by:
-            req.admin?.id || null,
-
-        processed_at:
-            new Date().toISOString()
-
-    })
-
-    .select()
-
-    .single();
-
-
-if (depositError) {
+if (
+    !deposit ||
+    !transaction ||
+    !updatedRequest ||
+    !updatedCustomer
+) {
 
     console.error(
-        "APPROVED DEPOSIT CREATE ERROR:",
-        depositError
+        "APPROVE DEPOSIT REQUEST INCOMPLETE RESULT:",
+        approvalResult
     );
 
     return res.status(500).json({
@@ -390,192 +379,11 @@ if (depositError) {
         success: false,
 
         message:
-            "Deposit request approved, but deposit could not be recorded.",
-
-        error:
-            depositError.message
+            "Deposit approval returned an incomplete result."
 
     });
 
 }
-
-
-/*
--------------------------------------------------
-UPDATE CUSTOMER BALANCE
--------------------------------------------------
-*/
-
-const {
-    data: updatedCustomer,
-    error: balanceError
-} = await supabase
-
-    .from("customers")
-
-    .update({
-
-        balance:
-            newBalance,
-
-        updated_at:
-            new Date().toISOString()
-
-    })
-
-    .eq("id", customerId)
-
-    .select(
-        "id, balance"
-    )
-
-    .single();
-
-
-if (balanceError) {
-
-    console.error(
-        "APPROVED DEPOSIT BALANCE ERROR:",
-        balanceError
-    );
-
-    return res.status(500).json({
-
-        success: false,
-
-        message:
-            "Deposit was recorded, but customer balance could not be updated.",
-
-        error:
-            balanceError.message
-
-    });
-
-}
-
-
-/*
--------------------------------------------------
-CREATE DEPOSIT TRANSACTION
--------------------------------------------------
-*/
-
-const {
-    data: transaction,
-    error: transactionError
-} = await supabase
-
-    .from("transactions")
-
-    .insert({
-
-        customer_id:
-            customerId,
-
-        type:
-            "deposit",
-
-        amount:
-            depositAmount,
-
-        description:
-            `Deposit via ${depositRequest.payment_method}`,
-
-        status:
-            "completed",
-
-        balance_before:
-            currentBalance,
-
-        balance_after:
-            newBalance,
-
-        reference_number:
-            depositRequest.reference_number,
-
-        performed_by:
-            req.admin?.id || null
-
-    })
-
-    .select()
-
-    .single();
-
-
-if (transactionError) {
-
-    console.error(
-        "APPROVED DEPOSIT TRANSACTION ERROR:",
-        transactionError
-    );
-
-    return res.status(500).json({
-
-        success: false,
-
-        message:
-            "Deposit and balance were processed, but transaction recording failed.",
-
-        error:
-            transactionError.message
-
-    });
-
-}
-
-
-/*
--------------------------------------------------
-MARK REQUEST APPROVED
--------------------------------------------------
-*/
-
-const {
-    data: updatedRequest,
-    error: updateError
-} = await supabase
-
-    .from("deposit_requests")
-
-    .update({
-
-        status:
-            "APPROVED",
-
-        processed_by:
-            req.admin?.id || null,
-
-        processed_at:
-            new Date().toISOString()
-
-    })
-
-    .eq("id", requestId)
-
-    .eq("status", "PENDING")
-
-    .select()
-
-    .single();
-
-
-if (updateError) {
-
-    return res.status(500).json({
-
-        success: false,
-
-        message:
-            "Deposit was processed, but the request status could not be updated.",
-
-        error:
-            updateError.message
-
-    });
-
-}
-
 
 /*
 -------------------------------------------------
