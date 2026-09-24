@@ -4277,6 +4277,8 @@ const loanDisbursements =
 
           totalLoanDisbursed,
 
+          loanDisbursementCount,
+
           totalOutstandingLoans,
 
           totalInterestEarned,
