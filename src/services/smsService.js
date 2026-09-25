@@ -99,6 +99,17 @@ export async function sendSMS({
                 phone
             );
 
+               if (
+            !normalizedPhone ||
+            !/^\+265\d{9}$/.test(normalizedPhone)
+        ) {
+
+            throw new Error(
+                "Invalid Malawi phone number."
+            );
+
+               }
+
 
         /* =============================================
            SMS DISABLED
