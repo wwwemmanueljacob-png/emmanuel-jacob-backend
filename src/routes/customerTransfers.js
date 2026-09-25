@@ -370,6 +370,9 @@ router.post(
                 priority:
                     "NORMAL",
 
+                sms_required:
+                    true,
+
                 reference_type:
                     "TRANSFER",
 
@@ -404,6 +407,9 @@ router.post(
 
                 priority:
                     "NORMAL",
+                
+              sms_required:
+                    true,
 
                 reference_type:
                     "TRANSFER",
