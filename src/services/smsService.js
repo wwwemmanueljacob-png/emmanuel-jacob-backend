@@ -278,28 +278,31 @@ export async function queueCustomerSMS({
 
         return {
 
-            success:
-                result.success,
+    success:
+        result.success,
 
-            sent:
-                result.sent || false,
+    sent:
+        result.sent || false,
 
-            customer_id:
-                customer.id,
+    disabled:
+        result.disabled || false,
 
-            phone,
+    customer_id:
+        customer.id,
 
-            reference_type,
+    phone,
 
-            reference_id,
+    reference_type,
 
-            provider:
-                SMS_PROVIDER,
+    reference_id,
 
-            error:
-                result.error || null
+    provider:
+        SMS_PROVIDER,
 
-        };
+    error:
+        result.error || null
+
+};
 
 
     } catch (error) {
