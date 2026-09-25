@@ -795,6 +795,9 @@ router.post(
         priority:
           "NORMAL",
 
+        sms_required:
+          true,
+
         reference_type:
           "loan",
 
