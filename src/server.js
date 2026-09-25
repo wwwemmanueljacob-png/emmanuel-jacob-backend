@@ -32,7 +32,10 @@ import loanDocumentsRouter from "./routes/loanDocuments.js";
 import reportsRouter from "./routes/reports.js";
 import settingsRouter from "./routes/settings.js";
 import notificationsRouter from "./routes/notifications.js";
-import { createNotification } from "./lib/notifications.js";
+import {
+  createNotification,
+  notifyCustomer
+} from "./lib/notifications.js";
 import {
   sendSMS,
   queueCustomerSMS
