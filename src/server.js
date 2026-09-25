@@ -36,6 +36,7 @@ import { createNotification } from "./lib/notifications.js";
 import onekhusaWebhookRouter from "./routes/onekhusaWebhook.js";
 import withdrawalsRouter from "./routes/withdrawals.js";
 import customerDepositsRouter from "./routes/customerDeposits.js";
+import customerTransfersRouter from "./routes/customerTransfers.js";
 import adminDepositRequestsRouter from "./routes/adminDepositRequests.js";
 import adminDepositRequestActionsRouter from "./routes/adminDepositRequestActions.js";
 import adminSchedulesRouter from "./routes/AdminSchedules.js";
@@ -136,6 +137,7 @@ app.use(notificationsRouter);
 app.use(onekhusaWebhookRouter);
 app.use(withdrawalsRouter);
 app.use(customerDepositsRouter);
+app.use(customerTransfersRouter);
 app.use(adminDepositRequestsRouter);
 app.use(adminDepositRequestActionsRouter);
 
