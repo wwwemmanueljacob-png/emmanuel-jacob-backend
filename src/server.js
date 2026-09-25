@@ -33,6 +33,10 @@ import reportsRouter from "./routes/reports.js";
 import settingsRouter from "./routes/settings.js";
 import notificationsRouter from "./routes/notifications.js";
 import { createNotification } from "./lib/notifications.js";
+import {
+  sendSMS,
+  queueCustomerSMS
+} from "./services/smsService.js";
 import onekhusaWebhookRouter from "./routes/onekhusaWebhook.js";
 import withdrawalsRouter from "./routes/withdrawals.js";
 import customerDepositsRouter from "./routes/customerDeposits.js";
