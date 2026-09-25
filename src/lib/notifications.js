@@ -1,4 +1,7 @@
 import { supabase } from "./supabase.js";
+import {
+    queueCustomerSMS
+} from "../services/smsService.js";
 
 
 /* =========================================================
@@ -125,6 +128,63 @@ export async function createNotification({
             expires_at
 
         };
+
+               /* =============================================
+           CUSTOMER SMS PREPARATION
+        ============================================= */
+
+        if (
+            customer_id &&
+            sms_required
+        ) {
+
+            const smsResult =
+                await queueCustomerSMS({
+
+                    customer_id,
+
+                    message,
+
+                    reference_type,
+
+                    reference_id
+
+                });
+
+            if (
+                smsResult.success &&
+                smsResult.sent
+            ) {
+
+                notification.sms_status =
+                    "SENT";
+
+                notification.sms_sent_at =
+                    new Date().toISOString();
+
+            }
+
+            else if (
+                smsResult.disabled
+            ) {
+
+                notification.sms_status =
+                    "PENDING";
+
+            }
+
+            else {
+
+                notification.sms_status =
+                    "FAILED";
+
+                notification.sms_error =
+                    smsResult.error ||
+                    "SMS could not be sent.";
+
+            }
+
+        }
 
 
         /* =================================================
