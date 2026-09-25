@@ -422,6 +422,9 @@ router.put(
                 priority:
                     "NORMAL",
 
+                sms_required:
+                    true,
+
                 reference_type:
                     "deposit",
 
