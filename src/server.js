@@ -1657,6 +1657,42 @@ app.put(
 
       }
 
+      
+      /* ==============================
+         CUSTOMER WITHDRAWAL NOTIFICATION
+      ============================== */
+
+      await notifyCustomer({
+
+        customer_id:
+          data?.customer_id,
+
+        title:
+          "Withdrawal Completed",
+
+        message:
+          `Your withdrawal of MWK ${Number(data?.amount || 0).toFixed(2)} has been completed successfully. Your new account balance is MWK ${Number(data?.balance_after || 0).toFixed(2)}. Reference: ${data?.reference_number || "N/A"}.`,
+
+        type:
+          "WITHDRAWAL",
+
+        priority:
+          "NORMAL",
+
+        sms_required:
+          true,
+
+        reference_type:
+          "withdrawal",
+
+        reference_id:
+          Number(data?.withdrawal_id),
+
+        action:
+          "VIEW_TRANSACTION"
+
+      });
+
 
       /* ==============================
          SUCCESS
