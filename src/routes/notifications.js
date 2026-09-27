@@ -238,31 +238,42 @@ router.get(
         try {
 
             const authenticatedAdminId =
-    Number(req.admin.id);
+                Number(req.admin.id);
 
-const requestedAdminId =
-    Number(req.params.adminId);
+            const requestedAdminId =
+                Number(req.params.adminId);
 
-if (
-    !Number.isInteger(requestedAdminId) ||
-    requestedAdminId !== authenticatedAdminId
-) {
-    return res.status(403).json({
-        success: false,
-        message:
-            "You are not authorized to view these notifications."
-    });
-}
+            if (
+                !Number.isInteger(requestedAdminId) ||
+                requestedAdminId !== authenticatedAdminId
+            ) {
+
+                return res.status(403).json({
+
+                    success: false,
+
+                    message:
+                        "You are not authorized to view these notifications."
+
+                });
+
+            }
 
 
             const { data, error } =
                 await supabase
                     .from("notifications")
                     .select("*")
-                    .eq("admin_id", authenticatedAdminId)
-                    .order("created_at", {
-                        ascending: false
-                    });
+                    .eq(
+                        "admin_id",
+                        authenticatedAdminId
+                    )
+                    .order(
+                        "created_at",
+                        {
+                            ascending: false
+                        }
+                    );
 
 
             if(error){
@@ -355,7 +366,7 @@ router.post(
 
             reference_id,
 
-            action,
+            actions,
 
             created_by,
 
@@ -393,59 +404,66 @@ router.post(
 
 
         const result =
-    await createNotification({
+            await createNotification({
 
-        customer_id,
+                customer_id,
 
-        admin_id,
+                admin_id,
 
-        title,
+                title,
 
-        message,
+                message,
 
-        type: type || "GENERAL",
+                type:
+                    type || "GENERAL",
 
-        is_read: is_read ?? false,
+                is_read:
+                    is_read ?? false,
 
-        priority: priority || "NORMAL",
+                priority:
+                    priority || "NORMAL",
 
-        sms_required: sms_required ?? false,
+                sms_required:
+                    sms_required ?? false,
 
-        sms_status:
+                sms_status:
 
-            sms_status ||
+                    sms_status ||
 
-            (
-                sms_required
-                ? "PENDING"
-                : "NOT_REQUIRED"
-            ),
+                    (
+                        sms_required
+                        ? "PENDING"
+                        : "NOT_REQUIRED"
+                    ),
 
-        sms_sent_at,
+                sms_sent_at,
 
-        sms_error,
+                sms_error,
 
-        reference_type,
+                reference_type,
 
-        reference_id,
+                reference_id,
 
-        action,
+                actions,
 
-        created_by,
+                created_by,
 
-        expires_at
+                expires_at
 
-    });
+            });
 
 
         if(!result.success){
 
-    return res.status(500).json({
-        success:false,
-        message:
-            result.error ||
-            "Failed to create notification."
-    });
+            return res.status(500).json({
+
+                success:false,
+
+                message:
+                    result.error ||
+                    "Failed to create notification."
+
+            });
 
         }
 
@@ -455,7 +473,7 @@ router.post(
             success: true,
 
             notification:
-    result.notification
+                result.notification
 
         });
 
@@ -497,53 +515,64 @@ router.put(
 
 
             const authenticatedCustomerId =
-    Number(req.customerId);
+                Number(req.customerId);
 
-const { data: notification, error: findError } =
-    await supabase
-        .from("notifications")
-        .select("*")
-        .eq("id", id)
-        .single();
 
-if (findError || !notification) {
+            const {
+                data: notification,
+                error: findError
+            } = await supabase
+                .from("notifications")
+                .select("*")
+                .eq("id", id)
+                .single();
 
-    return res.status(404).json({
 
-        success: false,
+            if (
+                findError ||
+                !notification
+            ) {
 
-        message:
-            "Notification not found."
+                return res.status(404).json({
 
-    });
+                    success: false,
 
-}
+                    message:
+                        "Notification not found."
 
-if (
-    Number(notification.customer_id) !==
-    authenticatedCustomerId
-) {
+                });
 
-    return res.status(403).json({
+            }
 
-        success: false,
 
-        message:
-            "You are not authorized to update this notification."
+            if (
+                Number(notification.customer_id) !==
+                authenticatedCustomerId
+            ) {
 
-    });
+                return res.status(403).json({
 
-}
+                    success: false,
 
-const { data, error } =
-    await supabase
-        .from("notifications")
-        .update({
-            is_read: true
-        })
-        .eq("id", id)
-        .select()
-        .single();
+                    message:
+                        "You are not authorized to update this notification."
+
+                });
+
+            }
+
+
+            const {
+                data,
+                error
+            } = await supabase
+                .from("notifications")
+                .update({
+                    is_read: true
+                })
+                .eq("id", id)
+                .select()
+                .single();
 
 
             if(error){
@@ -635,7 +664,7 @@ router.put(
 
                 "reference_id",
 
-                "action",
+                "actions",
 
                 "created_by",
 
