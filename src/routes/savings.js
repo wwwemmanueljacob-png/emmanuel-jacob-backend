@@ -32,16 +32,16 @@ router.get("/customer/:id", async (req, res) => {
     */
 
     const {
-      data: deposits,
-      error: depositsError
-    } = await supabase
-      .from("deposits")
-      .select("*")
-      .eq("customer_id", customerId)
-      .eq("status", "completed")
-      .order("created_at", {
-        ascending: false
-      });
+  data: deposits,
+  error: depositsError
+} = await supabase
+  .from("deposits")
+  .select("*")
+  .eq("customer_id", customerId)
+  .eq("status", "COMPLETED")
+  .order("created_at", {
+    ascending: false
+  });
 
     if (depositsError) {
       console.error(
@@ -63,16 +63,16 @@ router.get("/customer/:id", async (req, res) => {
     */
 
     const {
-      data: withdrawals,
-      error: withdrawalsError
-    } = await supabase
-      .from("withdrawals")
-      .select("*")
-      .eq("customer_id", customerId)
-      .eq("status", "completed")
-      .order("created_at", {
-        ascending: false
-      });
+  data: withdrawals,
+  error: withdrawalsError
+} = await supabase
+  .from("withdrawals")
+  .select("*")
+  .eq("customer_id", customerId)
+  .eq("status", "COMPLETED")
+  .order("created_at", {
+    ascending: false
+  });
 
     if (withdrawalsError) {
       console.error(
