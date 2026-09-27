@@ -3421,12 +3421,7 @@ app.get(
           "id,created_at,customer_id,loan_id,amount,status"
         ),
 
-        fetchAllRows(
-  "deposits",
-  "id,created_at,customer_id,amount,status"
-),
-
-                fetchAllRows(
+         fetchAllRows(
           "interest_records",
           "id,created_at,loan_id,customer_id,interest_amount,status"
         ).catch(
@@ -4146,7 +4141,7 @@ app.get(
           );
 
 
-      /* =====================================
+ /* =====================================
    SAVINGS
 ===================================== */
 
