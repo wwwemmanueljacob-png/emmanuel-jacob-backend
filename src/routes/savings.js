@@ -301,9 +301,9 @@ router.post("/deposit", async (req, res) => {
     if account_id was not supplied.
     */
     const savingsAccountId =
-      account_id ||
-      customer.account_number ||
-      null;
+  account_id
+    ? Number(account_id)
+    : Number(customer.id);
 
     /*
     Create the savings deposit
