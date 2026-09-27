@@ -282,6 +282,170 @@ router.put("/:id/status", async (req, res) => {
     }
 
 
+        /* ==============================
+       SEND NOTIFICATIONS
+    ============================== */
+
+    try {
+
+      if (newStatus === "COMPLETED") {
+
+        await notifyCustomer({
+
+          customer_id:
+            deposit.customer_id,
+
+          title:
+            "Savings Deposit Approved",
+
+          message:
+            `Your savings deposit of MWK ${Number(
+              deposit.amount || 0
+            ).toLocaleString()} has been approved successfully.`,
+
+          type:
+            "SAVINGS",
+
+          priority:
+            "NORMAL",
+
+          reference_type:
+            "SAVINGS_DEPOSIT",
+
+          reference_id:
+            depositId,
+
+          created_by:
+            req.admin?.id || null
+
+        });
+
+
+        if (req.admin?.id) {
+
+          await notifyAdmin({
+
+            admin_id:
+              req.admin.id,
+
+            title:
+              "Savings Deposit Approved",
+
+            message:
+              `Savings deposit #${depositId} for customer #${deposit.customer_id}, amount MWK ${Number(
+                deposit.amount || 0
+              ).toLocaleString()}, was approved.`,
+
+            type:
+              "ADMIN_ACTIVITY",
+
+            priority:
+              "NORMAL",
+
+            reference_type:
+              "SAVINGS_DEPOSIT",
+
+            reference_id:
+              depositId,
+
+            created_by:
+              req.admin.id
+
+          });
+
+        }
+
+      }
+
+
+      if (newStatus === "REJECTED") {
+
+        await notifyCustomer({
+
+          customer_id:
+            deposit.customer_id,
+
+          title:
+            "Savings Deposit Rejected",
+
+          message:
+            `Your savings deposit of MWK ${Number(
+              deposit.amount || 0
+            ).toLocaleString()} has been rejected.`,
+
+          type:
+            "SAVINGS",
+
+          priority:
+            "NORMAL",
+
+          reference_type:
+            "SAVINGS_DEPOSIT",
+
+          reference_id:
+            depositId,
+
+          created_by:
+            req.admin?.id || null
+
+        });
+
+
+        if (req.admin?.id) {
+
+          await notifyAdmin({
+
+            admin_id:
+              req.admin.id,
+
+            title:
+              "Savings Deposit Rejected",
+
+            message:
+              `Savings deposit #${depositId} for customer #${deposit.customer_id}, amount MWK ${Number(
+                deposit.amount || 0
+              ).toLocaleString()}, was rejected.`,
+
+            type:
+              "ADMIN_ACTIVITY",
+
+            priority:
+              "NORMAL",
+
+            reference_type:
+              "SAVINGS_DEPOSIT",
+
+            reference_id:
+              depositId,
+
+            created_by:
+              req.admin.id
+
+          });
+
+        }
+
+      }
+
+    } catch (notificationError) {
+
+      console.error(
+        "SAVINGS NOTIFICATION ERROR:",
+        notificationError
+      );
+
+      /*
+       * IMPORTANT:
+       * The savings deposit status has already
+       * been successfully updated.
+       *
+       * A notification failure must NOT undo
+       * the financial transaction.
+       */
+
+    }
+
+
     /* ==============================
        SUCCESS
     ============================== */
@@ -299,7 +463,6 @@ router.put("/:id/status", async (req, res) => {
         updatedDeposit
 
     });
-
 
   } catch (error) {
 
