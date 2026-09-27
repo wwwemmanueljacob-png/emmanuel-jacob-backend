@@ -272,7 +272,7 @@ export async function notifyCustomer({
 
     reference_id = null,
 
-    action = null,
+    actions = null,
 
     created_by = null,
 
@@ -299,7 +299,7 @@ export async function notifyCustomer({
 
         reference_id,
 
-        action,
+        actions,
 
         created_by,
 
@@ -330,7 +330,7 @@ export async function notifyAdmin({
 
     reference_id = null,
 
-    action = null,
+    actions = null,
 
     created_by = null,
 
@@ -357,7 +357,7 @@ export async function notifyAdmin({
 
         reference_id,
 
-        action,
+        actions,
 
         created_by,
 
@@ -384,7 +384,7 @@ export async function notifySystem({
 
     sms_required = false,
 
-    action = null,
+    actions = null,
 
     created_by = null,
 
@@ -405,7 +405,7 @@ export async function notifySystem({
 
         sms_required,
 
-        action,
+        actions,
 
         created_by,
 
