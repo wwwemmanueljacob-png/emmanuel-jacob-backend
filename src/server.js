@@ -14,6 +14,7 @@ import customersRouter from "./routes/customers.js";
 import customerAuthRouter, {
   authenticate
 } from "./routes/customerAuth.js";
+import savingsRouter from "./routes/savings.js";
 import loansRouter from "./routes/loans.js";
 import transactionsRouter from "./routes/transactions.js";
 import statementsRouter from "./routes/statements.js";
@@ -88,6 +89,7 @@ app.use(express.json());
 app.use(testSupabaseRouter);
 app.use(customersRouter);
 app.use(customerAuthRouter);
+app.use("/api/savings", savingsRouter);
 app.use(loansRouter);
 app.use(transactionsRouter);
 app.use(statementsRouter);
