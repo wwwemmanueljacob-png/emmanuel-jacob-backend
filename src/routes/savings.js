@@ -14,9 +14,12 @@ const router = express.Router();
 GET CUSTOMER SAVINGS
 GET /api/savings
 */
-router.get("/", async (req, res) => {
+router.get("/customer/:id", async (req, res) => {
   try {
-    const customerId = req.user?.id || req.query.customer_id;
+    const customerId =
+      req.params.id ||
+      req.user?.id ||
+      req.query.customer_id;
 
     if (!customerId) {
       return res.status(401).json({
