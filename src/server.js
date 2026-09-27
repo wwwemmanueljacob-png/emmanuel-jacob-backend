@@ -3347,19 +3347,18 @@ app.get(
       ===================================== */
 
       const [
-        customersData,
-        adminsData,
-        applicationsData,
-        loansData,
-        schedulesData,
-        repaymentsData,
-        depositsData,
-        withdrawalsData,
-        transfersData,
-        feesData,
-        savingsData,
-        interestData
-      ] = await Promise.all([
+  customersData,
+  adminsData,
+  applicationsData,
+  loansData,
+  schedulesData,
+  repaymentsData,
+  depositsData,
+  withdrawalsData,
+  transfersData,
+  feesData,
+  interestData
+] = await Promise.all([
 
         fetchAllRows(
           "customers",
@@ -3423,9 +3422,9 @@ app.get(
         ),
 
         fetchAllRows(
-          "savings",
-          "id,created_at,customer_id,amount,transaction_type,status,balance_after"
-        ),
+  "deposits",
+  "id,created_at,customer_id,amount,status"
+),
 
                 fetchAllRows(
           "interest_records",
@@ -4148,25 +4147,65 @@ app.get(
 
 
       /* =====================================
-         SAVINGS
-      ===================================== */
+   SAVINGS
+===================================== */
 
-      const totalSavingsTransactions =
-        savingsData.length;
+const completedSavingsDeposits =
+  depositsData.filter(
+    deposit =>
+      isStatus(
+        deposit,
+        "completed"
+      )
+  );
 
 
-      const totalSavingsAmount =
-        savingsData.reduce(
-          (
-            sum,
-            saving
-          ) =>
-            sum +
-            money(
-              saving.amount
-            ),
-          0
-        );
+const completedSavingsWithdrawals =
+  withdrawalsData.filter(
+    withdrawal =>
+      isStatus(
+        withdrawal,
+        "completed"
+      )
+  );
+
+
+const totalSavingsTransactions =
+  completedSavingsDeposits.length +
+  completedSavingsWithdrawals.length;
+
+
+const totalSavingsDeposits =
+  completedSavingsDeposits.reduce(
+    (
+      sum,
+      deposit
+    ) =>
+      sum +
+      money(
+        deposit.amount
+      ),
+    0
+  );
+
+
+const totalSavingsWithdrawals =
+  completedSavingsWithdrawals.reduce(
+    (
+      sum,
+      withdrawal
+    ) =>
+      sum +
+      money(
+        withdrawal.amount
+      ),
+    0
+  );
+
+
+const totalSavingsAmount =
+  totalSavingsDeposits -
+  totalSavingsWithdrawals;
 
 
       /* =====================================
@@ -4431,6 +4470,10 @@ const loanDisbursements =
           paidFees,
 
           totalSavingsTransactions,
+
+          totalSavingsDeposits,
+
+          totalSavingsWithdrawals,
 
           totalSavingsAmount,
 
