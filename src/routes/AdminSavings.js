@@ -145,8 +145,7 @@ router.put("/:id/status", async (req, res) => {
       Number(req.params.id);
 
     const {
-      status,
-      rejection_reason
+      status
     } = req.body;
 
 
@@ -158,7 +157,8 @@ router.put("/:id/status", async (req, res) => {
 
       return res.status(400).json({
         success: false,
-        message: "Invalid savings deposit ID."
+        message:
+          "Invalid savings deposit ID."
       });
 
     }
@@ -183,26 +183,6 @@ router.put("/:id/status", async (req, res) => {
         success: false,
         message:
           "Status must be COMPLETED or REJECTED."
-      });
-
-    }
-
-
-    /* ==============================
-       REJECTION REASON
-    ============================== */
-
-    if (
-      newStatus === "REJECTED" &&
-      !String(
-        rejection_reason || ""
-      ).trim()
-    ) {
-
-      return res.status(400).json({
-        success: false,
-        message:
-          "Rejection reason is required."
       });
 
     }
@@ -258,36 +238,23 @@ router.put("/:id/status", async (req, res) => {
        UPDATE DEPOSIT
     ============================== */
 
-    const updateData = {
-
-      status:
-        newStatus,
-
-      processed_by:
-        req.admin?.id || null,
-
-      processed_at:
-        new Date().toISOString()
-
-    };
-
-
-    if (newStatus === "REJECTED") {
-
-      updateData.rejection_reason =
-        String(
-          rejection_reason
-        ).trim();
-
-    }
-
-
     const {
       data: updatedDeposit,
       error: updateError
     } = await supabase
       .from("deposits")
-      .update(updateData)
+      .update({
+
+        status:
+          newStatus,
+
+        processed_by:
+          req.admin?.id || null,
+
+        processed_at:
+          new Date().toISOString()
+
+      })
       .eq("id", depositId)
       .select()
       .single();
