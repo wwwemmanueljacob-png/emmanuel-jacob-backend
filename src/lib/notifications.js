@@ -41,7 +41,7 @@ export async function createNotification({
 
     reference_id = null,
 
-    action = null,
+    actions = null,
 
     created_by = null,
 
@@ -121,7 +121,7 @@ export async function createNotification({
 
             reference_id,
 
-            action,
+            actions,
 
             created_by,
 
