@@ -16,50 +16,223 @@ GET /api/savings
 */
 router.get("/customer/:id", async (req, res) => {
   try {
-    const customerId =
-      req.params.id ||
-      req.user?.id ||
-      req.query.customer_id;
+    const customerId = req.params.id;
 
     if (!customerId) {
-      return res.status(401).json({
+      return res.status(400).json({
         success: false,
-        message: "Customer authentication required"
+        message: "Customer ID is required"
       });
     }
 
-    const { data, error } = await supabase
+    /*
+    ================================================
+    GET COMPLETED SAVINGS DEPOSITS
+    ================================================
+    */
+
+    const {
+      data: deposits,
+      error: depositsError
+    } = await supabase
       .from("deposits")
       .select("*")
       .eq("customer_id", customerId)
-      .order("created_at", { ascending: false });
+      .eq("status", "completed")
+      .order("created_at", {
+        ascending: false
+      });
 
-    if (error) {
-      console.error("Savings route error:", error);
+    if (depositsError) {
+      console.error(
+        "Savings deposits error:",
+        depositsError
+      );
 
       return res.status(500).json({
         success: false,
-        message: "Failed to load savings",
-        error: error.message
+        message: "Failed to load savings deposits",
+        error: depositsError.message
       });
     }
 
-    const savings = data || [];
+    /*
+    ================================================
+    GET COMPLETED SAVINGS WITHDRAWALS
+    ================================================
+    */
 
-    const totalSavings = savings.reduce((total, item) => {
-      return total + Number(
-        item.amount || 0
+    const {
+      data: withdrawals,
+      error: withdrawalsError
+    } = await supabase
+      .from("withdrawals")
+      .select("*")
+      .eq("customer_id", customerId)
+      .eq("status", "completed")
+      .order("created_at", {
+        ascending: false
+      });
+
+    if (withdrawalsError) {
+      console.error(
+        "Savings withdrawals error:",
+        withdrawalsError
       );
-    }, 0);
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Failed to load savings withdrawals",
+        error: withdrawalsError.message
+      });
+    }
+
+    /*
+    ================================================
+    COMBINE DEPOSITS + WITHDRAWALS
+    ================================================
+    */
+
+    const savings = [
+      ...(deposits || []).map(item => ({
+        ...item,
+        transaction_type: "deposit"
+      })),
+
+      ...(withdrawals || []).map(item => ({
+        ...item,
+        transaction_type: "withdrawal"
+      }))
+    ];
+
+    /*
+    Newest transaction first
+    */
+
+    savings.sort(
+      (a, b) =>
+        new Date(b.created_at || 0) -
+        new Date(a.created_at || 0)
+    );
+
+    /*
+    ================================================
+    CALCULATE TOTAL DEPOSITS
+    ================================================
+    */
+
+    const totalDeposits =
+      (deposits || []).reduce(
+        (total, item) =>
+          total +
+          Number(item.amount || 0),
+        0
+      );
+
+    /*
+    ================================================
+    CALCULATE TOTAL WITHDRAWALS
+    ================================================
+    */
+
+    const totalWithdrawals =
+      (withdrawals || []).reduce(
+        (total, item) =>
+          total +
+          Number(item.amount || 0),
+        0
+      );
+
+    /*
+    ================================================
+    CURRENT SAVINGS BALANCE
+    ================================================
+    */
+
+    const currentBalance =
+      totalDeposits -
+      totalWithdrawals;
+
+    /*
+    ================================================
+    ADD RUNNING BALANCE TO HISTORY
+    ================================================
+    */
+
+    const chronologicalSavings = [
+      ...(deposits || []).map(item => ({
+        ...item,
+        transaction_type: "deposit"
+      })),
+
+      ...(withdrawals || []).map(item => ({
+        ...item,
+        transaction_type: "withdrawal"
+      }))
+    ];
+
+    chronologicalSavings.sort(
+      (a, b) =>
+        new Date(a.created_at || 0) -
+        new Date(b.created_at || 0)
+    );
+
+    let runningBalance = 0;
+
+    chronologicalSavings.forEach(item => {
+
+      const amount =
+        Number(item.amount || 0);
+
+      if (
+        item.transaction_type ===
+        "deposit"
+      ) {
+        runningBalance += amount;
+      } else {
+        runningBalance -= amount;
+      }
+
+      item.balance_after =
+        runningBalance;
+    });
+
+    /*
+    Return newest first
+    */
+
+    chronologicalSavings.sort(
+      (a, b) =>
+        new Date(b.created_at || 0) -
+        new Date(a.created_at || 0)
+    );
 
     res.json({
       success: true,
-      total_savings: totalSavings,
-      savings
+
+      total_savings:
+        currentBalance,
+
+      total_deposits:
+        totalDeposits,
+
+      total_withdrawals:
+        totalWithdrawals,
+
+      transaction_count:
+        chronologicalSavings.length,
+
+      savings:
+        chronologicalSavings
     });
 
   } catch (error) {
-    console.error("Savings server error:", error);
+
+    console.error(
+      "Savings loading error:",
+      error
+    );
 
     res.status(500).json({
       success: false,
