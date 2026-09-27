@@ -78,7 +78,10 @@ router.post("/deposit", async (req, res) => {
   try {
     const {
       customer_id,
+      account_id,
       amount,
+      payment_method,
+      reference_number,
       description
     } = req.body;
 
@@ -102,14 +105,14 @@ router.post("/deposit", async (req, res) => {
     }
 
     /*
-    Find the customer
+    Check that the customer exists
     */
     const {
       data: customer,
       error: customerError
     } = await supabase
       .from("customers")
-      .select("id, balance")
+      .select("id, account_number")
       .eq("id", customer_id)
       .single();
 
@@ -121,16 +124,16 @@ router.post("/deposit", async (req, res) => {
     }
 
     /*
-    Calculate new savings balance
+    Use the customer's account number
+    if account_id was not supplied.
     */
-    const currentBalance =
-      Number(customer.balance || 0);
-
-    const newBalance =
-      currentBalance + depositAmount;
+    const savingsAccountId =
+      account_id ||
+      customer.account_number ||
+      null;
 
     /*
-    Record the deposit
+    Create the savings deposit
     */
     const {
       data: deposit,
@@ -139,13 +142,15 @@ router.post("/deposit", async (req, res) => {
       .from("deposits")
       .insert({
         customer_id: customer_id,
+        account_id: savingsAccountId,
         amount: depositAmount,
-        transaction_type: "deposit",
+        payment_method:
+          payment_method || "Not specified",
+        reference_number:
+          reference_number || null,
+        status: "pending",
         description:
-          description ||
-          "Savings deposit",
-        balance_after: newBalance,
-        status: "completed"
+          description || "Savings deposit"
       })
       .select()
       .single();
@@ -158,42 +163,16 @@ router.post("/deposit", async (req, res) => {
 
       return res.status(500).json({
         success: false,
-        message: "Failed to record savings deposit",
+        message: "Failed to create savings deposit",
         error: depositError.message
-      });
-    }
-
-    /*
-    Update customer balance
-    */
-    const {
-      error: balanceError
-    } = await supabase
-      .from("customers")
-      .update({
-        balance: newBalance
-      })
-      .eq("id", customer_id);
-
-    if (balanceError) {
-      console.error(
-        "Savings balance update error:",
-        balanceError
-      );
-
-      return res.status(500).json({
-        success: false,
-        message:
-          "Deposit recorded but balance update failed",
-        error: balanceError.message
       });
     }
 
     res.status(201).json({
       success: true,
-      message: "Savings deposit recorded successfully",
-      deposit,
-      balance: newBalance
+      message:
+        "Savings deposit submitted successfully",
+      deposit
     });
 
   } catch (error) {
