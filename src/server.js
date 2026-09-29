@@ -4334,6 +4334,391 @@ const loanDisbursements =
 
 
       /* =====================================
+   12-MONTH FINANCIAL ANALYTICS
+===================================== */
+
+const monthlyAnalytics = [];
+
+const now = new Date();
+
+/*
+ * Build the last 12 months.
+ * Oldest month first.
+ */
+
+for (let i = 11; i >= 0; i--) {
+
+  const monthDate = new Date(
+    now.getFullYear(),
+    now.getMonth() - i,
+    1
+  );
+
+  const nextMonthDate = new Date(
+    now.getFullYear(),
+    now.getMonth() - i + 1,
+    1
+  );
+
+  const year =
+    monthDate.getFullYear();
+
+  const month =
+    monthDate.getMonth();
+
+  const monthName =
+    monthDate.toLocaleString(
+      "en-US",
+      {
+        month: "short"
+      }
+    );
+
+
+  /* =====================================
+     APPLICATIONS
+  ===================================== */
+
+  const monthlyApplications =
+    applicationsData.filter(
+      application => {
+
+        if (!application.created_at) {
+          return false;
+        }
+
+        const date =
+          new Date(
+            application.created_at
+          );
+
+        return (
+          date >= monthDate &&
+          date < nextMonthDate
+        );
+
+      }
+    );
+
+
+  /* =====================================
+     LOANS / DISBURSEMENTS
+  ===================================== */
+
+  const monthlyLoans =
+    loansData.filter(
+      loan => {
+
+        const dateValue =
+          loan.approval_date ||
+          loan.created_at;
+
+        if (!dateValue) {
+          return false;
+        }
+
+        const date =
+          new Date(
+            dateValue
+          );
+
+        return (
+          date >= monthDate &&
+          date < nextMonthDate
+        );
+
+      }
+    );
+
+
+  const monthlyDisbursements =
+    monthlyLoans.filter(
+      loan =>
+        [
+          "active",
+          "disbursed",
+          "running"
+        ].includes(
+          normalize(
+            loan.loan_status
+          )
+        )
+    );
+
+
+  const monthlyDisbursedAmount =
+    monthlyDisbursements.reduce(
+      (
+        sum,
+        loan
+      ) =>
+        sum +
+        money(
+          loan.loan_amount
+        ),
+      0
+    );
+
+
+  /* =====================================
+     REPAYMENTS
+  ===================================== */
+
+  const monthlyRepayments =
+    repaymentsData.filter(
+      repayment => {
+
+        const dateValue =
+          repayment.payment_date ||
+          repayment.created_at;
+
+        if (!dateValue) {
+          return false;
+        }
+
+        const date =
+          new Date(
+            dateValue
+          );
+
+        return (
+          date >= monthDate &&
+          date < nextMonthDate
+        );
+
+      }
+    );
+
+
+  const monthlyRepaymentAmount =
+    monthlyRepayments.reduce(
+      (
+        sum,
+        repayment
+      ) =>
+        sum +
+        money(
+          repayment.amount
+        ),
+      0
+    );
+
+
+  /* =====================================
+     DEPOSITS
+  ===================================== */
+
+  const monthlyDeposits =
+    depositsData.filter(
+      deposit => {
+
+        if (!deposit.created_at) {
+          return false;
+        }
+
+        const date =
+          new Date(
+            deposit.created_at
+          );
+
+        return (
+          date >= monthDate &&
+          date < nextMonthDate
+        );
+
+      }
+    );
+
+
+  const monthlyDepositAmount =
+    monthlyDeposits.reduce(
+      (
+        sum,
+        deposit
+      ) =>
+        sum +
+        money(
+          deposit.amount
+        ),
+      0
+    );
+
+
+  /* =====================================
+     WITHDRAWALS
+  ===================================== */
+
+  const monthlyWithdrawals =
+    withdrawalsData.filter(
+      withdrawal => {
+
+        if (!withdrawal.created_at) {
+          return false;
+        }
+
+        const date =
+          new Date(
+            withdrawal.created_at
+          );
+
+        return (
+          date >= monthDate &&
+          date < nextMonthDate
+        );
+
+      }
+    );
+
+
+  const monthlyWithdrawalAmount =
+    monthlyWithdrawals.reduce(
+      (
+        sum,
+        withdrawal
+      ) =>
+        sum +
+        money(
+          withdrawal.amount
+        ),
+      0
+    );
+
+
+  /* =====================================
+     NEW CUSTOMERS
+  ===================================== */
+
+  const monthlyCustomers =
+    customersData.filter(
+      customer => {
+
+        if (!customer.created_at) {
+          return false;
+        }
+
+        const date =
+          new Date(
+            customer.created_at
+          );
+
+        return (
+          date >= monthDate &&
+          date < nextMonthDate
+        );
+
+      }
+    ).length;
+
+
+  /* =====================================
+     MONTHLY RESULT
+  ===================================== */
+
+  monthlyAnalytics.push({
+
+    year,
+
+    month:
+      month + 1,
+
+    monthName,
+
+    applications:
+      monthlyApplications.length,
+
+    loans:
+      monthlyLoans.length,
+
+    disbursedLoans:
+      monthlyDisbursements.length,
+
+    disbursedAmount:
+      monthlyDisbursedAmount,
+
+    repayments:
+      monthlyRepayments.length,
+
+    repaymentAmount:
+      monthlyRepaymentAmount,
+
+    deposits:
+      monthlyDeposits.length,
+
+    depositAmount:
+      monthlyDepositAmount,
+
+    withdrawals:
+      monthlyWithdrawals.length,
+
+    withdrawalAmount:
+      monthlyWithdrawalAmount,
+
+    newCustomers:
+      monthlyCustomers
+
+  });
+
+}
+
+
+/* =====================================
+   ANALYTICS TOTALS
+===================================== */
+
+const analyticsTotals = {
+
+  applications:
+    monthlyAnalytics.reduce(
+      (sum, item) =>
+        sum +
+        item.applications,
+      0
+    ),
+
+  disbursedAmount:
+    monthlyAnalytics.reduce(
+      (sum, item) =>
+        sum +
+        item.disbursedAmount,
+      0
+    ),
+
+  repaymentAmount:
+    monthlyAnalytics.reduce(
+      (sum, item) =>
+        sum +
+        item.repaymentAmount,
+      0
+    ),
+
+  depositAmount:
+    monthlyAnalytics.reduce(
+      (sum, item) =>
+        sum +
+        item.depositAmount,
+      0
+    ),
+
+  withdrawalAmount:
+    monthlyAnalytics.reduce(
+      (sum, item) =>
+        sum +
+        item.withdrawalAmount,
+      0
+    ),
+
+  newCustomers:
+    monthlyAnalytics.reduce(
+      (sum, item) =>
+        sum +
+        item.newCustomers,
+      0
+    )
+
+};
+
+
+      /* =====================================
          RESPONSE
       ===================================== */
 
@@ -4342,6 +4727,10 @@ const loanDisbursements =
         success: true,
 
         statistics: {
+
+          monthlyAnalytics,
+
+          analyticsTotals,
 
           totalCustomers:
             customersData.length,
