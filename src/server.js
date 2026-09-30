@@ -9,6 +9,8 @@ import {
   adminSessions
 } from "./middleware/adminAuth.js";
 
+import { requirePermission } from "./middleware/permissions.js";
+
 import testSupabaseRouter from "./testSupabase.js";
 import customersRouter from "./routes/customers.js";
 import customerAuthRouter, {
