@@ -4278,12 +4278,21 @@ const totalSavingsAmount =
             ),
           0
         );
+      
 
-            /* =====================================
-         ADMIN FINANCIAL BALANCE
-      ===================================== */
+   /* =====================================
+   ADMIN FINANCIAL BALANCE
+===================================== */
 
-      const disbursedLoans =
+
+/*
+ * ACTIVE LOAN PORTFOLIO
+ *
+ * These are loans that are currently
+ * active, disbursed or running.
+ */
+
+const activePortfolioLoans =
   loansData.filter(
     loan =>
       [
@@ -4297,11 +4306,9 @@ const totalSavingsAmount =
       )
   );
 
-const loanDisbursementCount =
-  disbursedLoans.length;
 
-const loanDisbursements =
-  disbursedLoans.reduce(
+const activePortfolioAmount =
+  activePortfolioLoans.reduce(
     (
       sum,
       loan
@@ -4313,27 +4320,112 @@ const loanDisbursements =
     0
   );
 
-      const adminAvailableBalance =
-        completedDepositAmount +
-        completedRepaymentAmount +
-        paidFees -
-        completedWithdrawalAmount -
-        loanDisbursements;
+
+/*
+ * HISTORICAL DISBURSED LOANS
+ *
+ * A loan is considered disbursed if
+ * its status indicates that funds have
+ * reached the disbursement/active stage
+ * OR the loan has subsequently been
+ * completed, paid or closed.
+ *
+ * We deliberately do NOT include
+ * "approved" because approval alone
+ * does not prove that money was disbursed.
+ */
+
+const historicallyDisbursedLoans =
+  loansData.filter(
+    loan =>
+      [
+        "active",
+        "disbursed",
+        "running",
+        "completed",
+        "paid",
+        "closed"
+      ].includes(
+        normalize(
+          loan.loan_status
+        )
+      )
+  );
 
 
-      const totalOutstandingLoans =
-        totalRemainingBalance;
+const historicalLoanDisbursedAmount =
+  historicallyDisbursedLoans.reduce(
+    (
+      sum,
+      loan
+    ) =>
+      sum +
+      money(
+        loan.loan_amount
+      ),
+    0
+  );
 
 
-      const totalInterestEarned =
-        totalInterestAmount;
+const historicalLoanDisbursementCount =
+  historicallyDisbursedLoans.length;
 
 
-      const totalLoanDisbursed =
-        loanDisbursements;
+/*
+ * OUTSTANDING LOAN BALANCE
+ *
+ * This is the remaining balance recorded
+ * on all loan records.
+ */
+
+const totalOutstandingLoans =
+  totalRemainingBalance;
 
 
-      /* =====================================
+/*
+ * INTEREST
+ */
+
+const totalInterestEarned =
+  totalInterestAmount;
+
+
+/*
+ * BACKWARD-COMPATIBLE VALUES
+ *
+ * Keep the existing response keys so
+ * the current Admin Dashboard does not
+ * break.
+ */
+
+const loanDisbursementCount =
+  historicalLoanDisbursementCount;
+
+
+const loanDisbursements =
+  historicalLoanDisbursedAmount;
+
+
+const totalLoanDisbursed =
+  historicalLoanDisbursedAmount;
+
+
+/*
+ * ADMIN AVAILABLE BALANCE
+ *
+ * For now we retain the existing formula
+ * so we do not silently redefine the
+ * meaning of this financial figure.
+ */
+
+const adminAvailableBalance =
+  completedDepositAmount +
+  completedRepaymentAmount +
+  paidFees -
+  completedWithdrawalAmount -
+  activePortfolioAmount;
+
+  /* =====================================
    12-MONTH FINANCIAL ANALYTICS
 ===================================== */
 
