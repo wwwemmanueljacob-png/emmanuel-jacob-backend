@@ -51,6 +51,7 @@ import adminDepositRequestsRouter from "./routes/adminDepositRequests.js";
 import adminDepositRequestActionsRouter from "./routes/adminDepositRequestActions.js";
 import adminSchedulesRouter from "./routes/AdminSchedules.js";
 import loanProductsRouter from "./routes/loanProducts.js";
+import permissionsRouter from "./routes/permissions.js";
 
 dotenv.config();
 
@@ -159,6 +160,9 @@ app.use(
 );
 
 app.use("/api/admin/loan-products", loanProductsRouter);
+app.use(
+  permissionsRouter
+);
 
 
 /* =========================================
