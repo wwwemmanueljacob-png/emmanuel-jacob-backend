@@ -220,5 +220,98 @@ router.get(
     }
 );
 
+/*
+=================================================
+GET ALL ADMINISTRATORS
+=================================================
+*/
+
+router.get(
+    "/api/admin/permissions/admins",
+
+    authenticateAdmin,
+
+    requirePermission("permissions.view"),
+
+    async (req, res) => {
+
+        try {
+
+            const {
+                data,
+                error
+            } = await supabase
+                .from("admins")
+                .select(`
+                    id,
+                    full_name,
+                    email,
+                    role,
+                    phone,
+                    photo,
+                    is_active,
+                    is_verified,
+                    created_at,
+                    last_login
+                `)
+                .order(
+                    "full_name",
+                    {
+                        ascending: true
+                    }
+                );
+
+
+            if (error) {
+
+                console.error(
+                    "ADMIN PERMISSIONS ADMINS ERROR:",
+                    error
+                );
+
+                return res.status(500).json({
+                    success: false,
+                    message:
+                        "Unable to load administrators.",
+                    error:
+                        error.message
+                });
+
+            }
+
+
+            return res.json({
+
+                success: true,
+
+                admins:
+                    data || []
+
+            });
+
+        } catch (error) {
+
+            console.error(
+                "ADMIN PERMISSIONS ADMINS SERVER ERROR:",
+                error
+            );
+
+            return res.status(500).json({
+
+                success: false,
+
+                message:
+                    "Administrators could not be loaded.",
+
+                error:
+                    error.message
+
+            });
+
+        }
+
+    }
+);
+
 
 export default router;
