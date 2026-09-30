@@ -1943,6 +1943,8 @@ app.get(
 
   authenticateAdmin,
 
+  requirePermission("loan_applications.view"),
+
   async (req, res) => {
 
     try {
