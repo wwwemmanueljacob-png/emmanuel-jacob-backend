@@ -3,6 +3,7 @@ import express from "express";
 import multer from "multer";
 import crypto from "crypto";
 import { supabase } from "../lib/supabase.js";
+import { requirePermission } from "../middleware/permissions.js";
 
 const router = express.Router();
 
@@ -811,6 +812,7 @@ GET /api/customers
 */
 router.get(
   "/api/customers",
+  requirePermission("customers.view"),
   async (req, res) => {
 
     try {
