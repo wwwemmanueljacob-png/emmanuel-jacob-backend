@@ -131,20 +131,20 @@ export function requirePermission(permissionKey) {
             ========================================= */
 
             const {
-                data: directPermission,
-                error: directError
-            } = await supabase
-                .from("admin_permissions")
-                .select("id")
-                .eq(
-                    "admin_id",
-                    req.admin.id
-                )
-                .eq(
-                    "permission_id",
-                    permission.id
-                )
-                .maybeSingle();
+    data: directPermission,
+    error: directError
+} = await supabase
+    .from("admin_permissions")
+    .select("id")
+    .eq(
+        "admin_id",
+        req.admin.id
+    )
+    .eq(
+        "permission",
+        permissionKey
+    )
+    .maybeSingle();
 
 
             if (directError) {
